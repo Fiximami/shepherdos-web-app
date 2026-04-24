@@ -1,5 +1,5 @@
-import { PageSurface } from "@/components/dashboard/shared/page-surface";
+import { EventsPageView } from "@/components/dashboard/events/events-page-view";
 
 export default function EventsPage() {
-  return <PageSurface heading="Events" />;
+  return <EventsPageView />;
 }
