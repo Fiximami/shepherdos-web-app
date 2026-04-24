@@ -1,5 +1,5 @@
-import { PageSurface } from "@/components/dashboard/shared/page-surface";
+import { CommunicationPageView } from "@/components/dashboard/communication/communication-page-view";
 
 export default function CommunicationPage() {
-  return <PageSurface heading="Communication" />;
+  return <CommunicationPageView />;
 }
