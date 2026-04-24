@@ -1,5 +1,5 @@
-import { PageSurface } from "@/components/dashboard/shared/page-surface";
+import { ProfilePageView } from "@/components/dashboard/profile/profile-page-view";
 
 export default function ProfilePage() {
-  return <PageSurface heading="Profile" />;
+  return <ProfilePageView />;
 }
