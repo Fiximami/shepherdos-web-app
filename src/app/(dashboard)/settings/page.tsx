@@ -1,5 +1,5 @@
-import { PageSurface } from "@/components/dashboard/shared/page-surface";
+import { SettingsPageView } from "@/components/dashboard/settings/settings-page-view";
 
 export default function SettingsPage() {
-  return <PageSurface heading="Settings" />;
+  return <SettingsPageView />;
 }
