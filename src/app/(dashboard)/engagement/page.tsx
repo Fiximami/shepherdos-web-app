@@ -1,5 +1,5 @@
-import { PageSurface } from "@/components/dashboard/shared/page-surface";
+import { EngagementPageView } from "@/components/dashboard/engagement/engagement-page-view";
 
 export default function EngagementPage() {
-  return <PageSurface heading="Engagement" />;
+  return <EngagementPageView />;
 }
