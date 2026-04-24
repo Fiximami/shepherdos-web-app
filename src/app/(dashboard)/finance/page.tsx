@@ -1,5 +1,5 @@
-import { PageSurface } from "@/components/dashboard/shared/page-surface";
+import { FinancePageView } from "@/components/dashboard/finance/finance-page-view";
 
 export default function FinancePage() {
-  return <PageSurface heading="Finance" />;
+  return <FinancePageView />;
 }
