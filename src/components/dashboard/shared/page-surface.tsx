@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { PageHeader } from "@/components/dashboard/layout/page-header";
+
 type PageSurfaceProps = {
   heading: string;
   children?: ReactNode;
@@ -8,9 +10,9 @@ type PageSurfaceProps = {
 export function PageSurface({ heading, children }: PageSurfaceProps) {
   return (
     <main className="mx-auto w-full max-w-6xl p-6">
-      <h1 className="text-lg font-medium text-foreground">{heading}</h1>
+      <PageHeader title={heading} />
       {children ?? (
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="-mt-2 text-sm text-muted-foreground">
           This screen will be implemented in a later milestone.
         </p>
       )}

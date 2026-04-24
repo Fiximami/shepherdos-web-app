@@ -1,5 +1,5 @@
-import { PageSurface } from "@/components/dashboard/shared/page-surface";
+import { DashboardHome } from "@/components/dashboard/shared/dashboard-home";
 
 export default function DashboardPage() {
-  return <PageSurface heading="Overview" />;
+  return <DashboardHome />;
 }
