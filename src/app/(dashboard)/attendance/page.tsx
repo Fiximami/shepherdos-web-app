@@ -1,5 +1,5 @@
-import { PageSurface } from "@/components/dashboard/shared/page-surface";
+import { AttendancePageView } from "@/components/dashboard/attendance/attendance-page-view";
 
 export default function AttendancePage() {
-  return <PageSurface heading="Attendance" />;
+  return <AttendancePageView />;
 }
