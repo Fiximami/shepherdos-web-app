@@ -122,6 +122,14 @@ export function LoginForm({ className }: LoginFormProps) {
           "Sign in"
         )}
       </Button>
+
+      <Button asChild type="button" variant="outline" size="lg" className="h-11 w-full rounded-xl">
+        <Link href={routes.app.dashboard}>Continue to Demo Dashboard</Link>
+      </Button>
+
+      <p className="text-center text-xs text-muted-foreground">
+        Demo access only — authentication will be connected later.
+      </p>
     </form>
   );
 }

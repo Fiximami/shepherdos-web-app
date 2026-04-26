@@ -1,6 +1,7 @@
 "use client";
 
-import { Church } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import Image from "next/image";
 
 import {
   Card,
@@ -16,6 +17,9 @@ import { AuthAmbientBackdrop } from "./layout/auth-ambient-backdrop";
 import { AuthBrandLockup } from "./layout/auth-brand-lockup";
 
 export function LoginScreen() {
+  // Replace this placeholder number with your real WhatsApp support line.
+  const whatsappSupportUrl = "https://wa.me/233XXXXXXXXX";
+
   return (
     <div className="relative min-h-svh overflow-hidden bg-background">
       <AuthAmbientBackdrop />
@@ -25,10 +29,13 @@ export function LoginScreen() {
           <div className="mb-8">
             <AuthBrandLockup
               icon={
-                <Church
-                  className="size-6 text-foreground/85"
-                  strokeWidth={1.75}
-                  aria-hidden
+                <Image
+                  src="/images/branding/shepherdos-logo.png"
+                  alt="ShepherdOS logo"
+                  width={28}
+                  height={28}
+                  className="size-7 object-contain"
+                  priority
                 />
               }
             />
@@ -78,6 +85,17 @@ export function LoginScreen() {
           </p>
         </section>
       </div>
+
+      <a
+        href={whatsappSupportUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat with ShepherdOS on WhatsApp"
+        className="fixed bottom-4 left-4 z-20 inline-flex h-11 items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 text-sm font-medium text-emerald-800 shadow-[0_10px_24px_-14px_rgba(16,185,129,0.7)] backdrop-blur transition-colors hover:bg-emerald-500/15 dark:text-emerald-300"
+      >
+        <MessageCircle className="size-4" aria-hidden />
+        <span className="hidden sm:inline">WhatsApp Support</span>
+      </a>
     </div>
   );
 }
