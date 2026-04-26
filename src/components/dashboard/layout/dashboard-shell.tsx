@@ -13,6 +13,7 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 
 const pageTitles: Record<string, string> = {
+  "/admin": "Leadership Console",
   [routes.app.dashboard]: "Dashboard",
   [routes.app.members]: "Members",
   [routes.app.attendance]: "Attendance",
