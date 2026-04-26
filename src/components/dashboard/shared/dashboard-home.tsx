@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
+import { CommunityFeed } from "@/components/feed/community-feed";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const upcomingEvents = [
@@ -33,19 +34,6 @@ const notifications = [
   { title: "Reminder: youth retreat briefing moved to Friday", time: "2h ago" },
   { title: "You were tagged in a follow-up note for a first-time guest", time: "Yesterday" },
   { title: "Service team rota for next week is available", time: "2 days ago" },
-] as const;
-
-const communityFeed = [
-  {
-    author: "Grace Community Team",
-    message: "Thank you to everyone who served at outreach this weekend. 18 families were visited.",
-    time: "Today",
-  },
-  {
-    author: "Hospitality Ministry",
-    message: "New volunteers orientation starts after service next Sunday.",
-    time: "Yesterday",
-  },
 ] as const;
 
 export function DashboardHome() {
@@ -180,15 +168,7 @@ export function DashboardHome() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {communityFeed.map((post) => (
-              <div key={post.message} className="rounded-xl border border-border/60 bg-background/60 px-4 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-foreground">{post.author}</p>
-                  <span className="text-xs text-muted-foreground">{post.time}</span>
-                </div>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{post.message}</p>
-              </div>
-            ))}
+            <CommunityFeed />
           </CardContent>
         </Card>
       </section>
