@@ -122,7 +122,41 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: #0b1c2c;
+    background-image:
+      radial-gradient(
+        120% 78% at 50% -12%,
+        rgb(108 166 255 / 24%) 0%,
+        rgb(18 46 74 / 16%) 36%,
+        rgb(11 28 44 / 0%) 68%
+      ),
+      radial-gradient(
+        58% 42% at 82% 18%,
+        rgb(233 177 84 / 12%) 0%,
+        rgb(11 28 44 / 0%) 72%
+      ),
+      radial-gradient(
+        68% 56% at 18% 86%,
+        rgb(90 138 212 / 10%) 0%,
+        rgb(11 28 44 / 0%) 72%
+      ),
+      linear-gradient(rgb(255 255 255 / 2.2%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 2.2%) 1px, transparent 1px);
+    background-size:
+      auto,
+      auto,
+      auto,
+      54px 54px,
+      54px 54px;
+    background-position:
+      center top,
+      right top,
+      left bottom,
+      center,
+      center;
+    background-attachment: fixed;
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat;
   }
   html {
     @apply font-sans;

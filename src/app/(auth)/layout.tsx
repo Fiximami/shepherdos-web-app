@@ -5,5 +5,5 @@ type AuthGroupLayoutProps = {
 };
 
 export default function AuthGroupLayout({ children }: AuthGroupLayoutProps) {
-  return <div className="min-h-svh bg-background">{children}</div>;
+  return <div className="min-h-svh bg-transparent">{children}</div>;
 }

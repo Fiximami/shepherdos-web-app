@@ -17,7 +17,7 @@ import { ResetPasswordForm } from "./reset-password-form";
 
 export function ResetPasswordScreen() {
   return (
-    <div className="relative min-h-svh overflow-hidden bg-background">
+    <div className="relative min-h-svh overflow-hidden bg-transparent">
       <AuthAmbientBackdrop />
 
       <div className="relative z-[1] mx-auto flex min-h-svh w-full max-w-lg flex-col px-4 py-10 sm:px-6 sm:py-14 lg:max-w-xl lg:py-16">

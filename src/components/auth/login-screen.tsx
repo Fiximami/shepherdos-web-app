@@ -21,7 +21,7 @@ export function LoginScreen() {
   const whatsappSupportUrl = "https://wa.me/233XXXXXXXXX";
 
   return (
-    <div className="relative min-h-svh overflow-hidden bg-background">
+    <div className="relative min-h-svh overflow-hidden bg-transparent">
       <AuthAmbientBackdrop />
 
       <div className="relative z-[1] mx-auto grid min-h-svh w-full max-w-6xl items-stretch px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,26rem)] lg:items-center lg:gap-12 lg:px-10 lg:py-0">

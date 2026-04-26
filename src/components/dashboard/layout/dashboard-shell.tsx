@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -43,7 +43,10 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const showLeadershipConsole = leadershipRoles.has(mockUser.role);
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
+    <div
+      className="min-h-svh bg-transparent text-white [--background:#0b1c2c] [--foreground:#ffffff] [--card:rgb(255_255_255_/_0.05)] [--card-foreground:#ffffff] [--muted:rgb(255_255_255_/_0.04)] [--muted-foreground:#9ca3af] [--border:rgb(255_255_255_/_0.1)] [--input:rgb(255_255_255_/_0.08)]"
+      style={{ colorScheme: "dark" } as CSSProperties}
+    >
       <div className="mx-auto grid min-h-svh w-full max-w-[1600px] grid-cols-1 gap-4 p-3 md:grid-cols-[260px_minmax(0,1fr)] md:p-4 lg:gap-5 lg:p-5">
         <div className="hidden md:block">
           <Sidebar currentPath={pathname} className="sticky top-4 h-[calc(100svh-2rem)]" />
@@ -55,7 +58,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
             onOpenSidebar={() => setIsMobileSidebarOpen(true)}
             showLeadershipConsole={showLeadershipConsole}
           />
-          <main className="mt-4 min-w-0 flex-1 rounded-2xl border border-border/70 bg-card/35 p-4 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.5)] sm:p-5 lg:p-6">
+          <main className="mt-4 min-w-0 flex-1 rounded-2xl p-4 sm:p-5 lg:p-6">
             {children}
           </main>
         </div>

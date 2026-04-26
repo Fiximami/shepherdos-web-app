@@ -22,7 +22,7 @@ export function Topbar({
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-16 items-center gap-3 rounded-xl border border-border/70 bg-background/80 px-4 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.7)] backdrop-blur",
+        "sticky top-0 z-30 flex h-16 items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 shadow-[0_12px_28px_-20px_rgba(0,0,0,0.58)] backdrop-blur-xl",
         className,
       )}
     >
@@ -37,14 +37,14 @@ export function Topbar({
       </Button>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-semibold text-foreground">{title}</p>
-        <p className="truncate text-xs text-muted-foreground">
+        <p className="truncate text-base font-semibold text-white">{title}</p>
+        <p className="truncate text-xs text-gray-400">
           ShepherdOS church workspace
         </p>
       </div>
 
       <div className="hidden items-center gap-2 md:flex">
-        <div className="flex h-9 w-56 items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 text-sm text-muted-foreground">
+        <div className="flex h-9 w-56 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-gray-400">
           <Search className="size-4" aria-hidden />
           <span>Search people, groups, records</span>
         </div>
@@ -67,11 +67,11 @@ export function Topbar({
         <Bell className="size-4" aria-hidden />
       </Button>
 
-      <div className="hidden items-center gap-2 rounded-lg border border-border/70 bg-muted/20 px-2.5 py-1.5 sm:flex">
-        <UserCircle2 className="size-4 text-muted-foreground" aria-hidden />
+      <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 sm:flex">
+        <UserCircle2 className="size-4 text-gray-400" aria-hidden />
         <div className="leading-tight">
-          <p className="text-xs font-medium">Church team member</p>
-          <p className="text-[11px] text-muted-foreground">Role placeholder</p>
+          <p className="text-xs font-medium text-white">Church team member</p>
+          <p className="text-[11px] text-gray-400">Role placeholder</p>
         </div>
       </div>
     </header>
