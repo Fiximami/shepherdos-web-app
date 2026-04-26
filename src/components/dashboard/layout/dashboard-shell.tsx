@@ -26,7 +26,7 @@ const pageTitles: Record<string, string> = {
   [routes.app.profile]: "Profile",
 };
 
-const leadershipRoles = new Set(["admin", "pastor", "finance", "leader"]);
+const leadershipRoles = new Set(["admin", "owner", "pastor", "finance", "leader"]);
 
 type DashboardShellProps = {
   children: ReactNode;
