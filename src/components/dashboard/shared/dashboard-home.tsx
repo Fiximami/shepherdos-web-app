@@ -1,225 +1,95 @@
 "use client";
 
 import {
-  ArrowRight,
-  BellRing,
-  CalendarCheck2,
-  CircleDollarSign,
-  ClipboardCheck,
-  HandCoins,
-  Megaphone,
-  UserPlus,
-  Users,
+  Bell,
+  CalendarDays,
+  Gift,
+  HeartHandshake,
+  MessageCircleHeart,
+  PartyPopper,
 } from "lucide-react";
-import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SummaryCard } from "@/components/dashboard/shared/summary-card";
 
-const attendanceData = [
-  { week: "Wk 1", attendees: 312 },
-  { week: "Wk 2", attendees: 338 },
-  { week: "Wk 3", attendees: 327 },
-  { week: "Wk 4", attendees: 356 },
-  { week: "Wk 5", attendees: 371 },
-];
+const upcomingEvents = [
+  { title: "Sunday Celebration Service", when: "Tomorrow · 9:00 AM", place: "Main Campus" },
+  { title: "Midweek Prayer Gathering", when: "Wed · 6:30 PM", place: "North Branch" },
+  { title: "Community Outreach Walk", when: "Sat · 8:00 AM", place: "South Branch" },
+] as const;
 
-const offeringData = [
-  { week: "Wk 1", amount: 825000 },
-  { week: "Wk 2", amount: 910000 },
-  { week: "Wk 3", amount: 880000 },
-  { week: "Wk 4", amount: 990000 },
-];
+const prayerSummary = [
+  "11 prayer requests are currently being covered by care teams this week.",
+  "3 requests need a follow-up call before Tuesday evening.",
+] as const;
 
-const announcements = [
+const celebrations = [
+  "Happy birthday to Miriam (Choir) and Daniel (Youth)!",
+  "2-year membership milestone for the Aina family.",
+  "Baptism thanksgiving testimonies coming up this Sunday.",
+] as const;
+
+const notifications = [
+  { title: "Reminder: youth retreat briefing moved to Friday", time: "2h ago" },
+  { title: "You were tagged in a follow-up note for a first-time guest", time: "Yesterday" },
+  { title: "Service team rota for next week is available", time: "2 days ago" },
+] as const;
+
+const communityFeed = [
   {
-    title: "Community outreach this Saturday",
-    excerpt: "Volunteers meet by 8:00 AM at the main hall for briefing and prayer.",
-    publishedAt: "Today, 9:20 AM",
+    author: "Grace Community Team",
+    message: "Thank you to everyone who served at outreach this weekend. 18 families were visited.",
+    time: "Today",
   },
   {
-    title: "Leaders' monthly review moved to Thursday",
-    excerpt: "Please note the updated schedule for pastors, secretaries, and team leads.",
-    publishedAt: "Yesterday",
+    author: "Hospitality Ministry",
+    message: "New volunteers orientation starts after service next Sunday.",
+    time: "Yesterday",
   },
-  {
-    title: "Youth worship night follow-up",
-    excerpt: "Share attendance notes and first-time guest feedback before Friday noon.",
-    publishedAt: "2 days ago",
-  },
-];
-
-const reminders = [
-  "Review 8 first-time visitor follow-ups from this week.",
-  "Approve 3 pending finance entries before end of day.",
-  "Confirm communication draft for Sunday service updates.",
-  "Check attendance outliers in two midweek groups.",
-];
-
-const quickActions = [
-  { label: "Add Member", icon: UserPlus },
-  { label: "Record Attendance", icon: CalendarCheck2 },
-  { label: "Create Announcement", icon: Megaphone },
-  { label: "Record Transaction", icon: HandCoins },
 ] as const;
 
 export function DashboardHome() {
   return (
-    <main className="mx-auto w-full max-w-7xl p-4 sm:p-5 lg:p-6">
+    <main className="mx-auto w-full max-w-6xl p-4 sm:p-5 lg:p-6">
       <PageHeader
         title="Welcome back"
-        description="Your church workspace is organized for this week—members, attendance, giving, communication, and follow-ups in one calm view."
+        description="Your member dashboard keeps church life close and clear—upcoming moments, care updates, and community highlights in one calm place."
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          label="Total Members"
-          value="1,248"
-          detail="+24 over the last 30 days"
-          icon={Users}
-        />
-        <SummaryCard
-          label="Attendance This Week"
-          value="371"
-          detail="Sunday service and weekly groups"
-          icon={CalendarCheck2}
-        />
-        <SummaryCard
-          label="Total Offering This Month"
-          value="₦3.61M"
-          detail="Across Sunday and midweek gatherings"
-          icon={CircleDollarSign}
-        />
-        <SummaryCard
-          label="Pending Follow-ups"
-          value="8"
-          detail="Members waiting for pastoral response"
-          icon={ClipboardCheck}
-        />
-      </section>
-
-      <section className="mt-6">
+      <section className="grid gap-4 lg:grid-cols-2">
         <Card className="border-border/70 bg-card/80 shadow-[0_14px_35px_-30px_rgba(15,23,42,0.55)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base sm:text-lg">Attendance Overview</CardTitle>
-            <CardDescription>
-              Weekly trend showing steady participation and congregation rhythm.
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <CalendarDays className="size-4 text-primary" aria-hidden />
+              Upcoming events
+            </CardTitle>
+            <CardDescription>What is coming next in your church rhythm.</CardDescription>
           </CardHeader>
-          <CardContent className="h-72 pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={attendanceData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="attendanceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.488 0.243 264.376)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="oklch(0.488 0.243 264.376)" stopOpacity={0.04} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="week" tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} width={30} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-card)",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="attendees"
-                  stroke="oklch(0.488 0.243 264.376)"
-                  fill="url(#attendanceGradient)"
-                  strokeWidth={2.4}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="mt-6">
-        <Card className="border-border/70 bg-card/80 shadow-[0_14px_35px_-30px_rgba(15,23,42,0.55)]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base sm:text-lg">Offering Overview</CardTitle>
-            <CardDescription>
-              Monthly giving snapshot to support faithful stewardship and planning.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-72 pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={offeringData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                <XAxis dataKey="week" tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} width={42} />
-                <Tooltip
-                  formatter={(value) => {
-                    const amount =
-                      typeof value === "number" ? value : Number(value ?? 0);
-                    return [`₦${amount.toLocaleString()}`, "Offering"];
-                  }}
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-card)",
-                  }}
-                />
-                <Bar
-                  dataKey="amount"
-                  radius={[8, 8, 2, 2]}
-                  fill="oklch(0.556 0 0)"
-                  maxBarSize={48}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="mt-6">
-        <Card className="border-border/70 bg-card/80 shadow-[0_14px_35px_-30px_rgba(15,23,42,0.55)]">
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Recent Announcements</CardTitle>
-            <CardDescription>
-              Keep leaders and teams aligned with the latest church communications.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {announcements.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-xl border border-border/70 bg-background/70 p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-sm font-medium text-foreground sm:text-base">{item.title}</h3>
-                  <span className="shrink-0 text-xs text-muted-foreground">{item.publishedAt}</span>
-                </div>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                  {item.excerpt}
+          <CardContent className="space-y-2.5">
+            {upcomingEvents.map((event) => (
+              <div key={event.title} className="rounded-xl border border-border/60 bg-background/65 px-4 py-3">
+                <p className="text-sm font-medium text-foreground">{event.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {event.when} · {event.place}
                 </p>
               </div>
             ))}
           </CardContent>
         </Card>
-      </section>
 
-      <section className="mt-6">
         <Card className="border-border/70 bg-card/80 shadow-[0_14px_35px_-30px_rgba(15,23,42,0.55)]">
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Pending Actions / Reminders</CardTitle>
-            <CardDescription>
-              A gentle checklist to keep care, operations, and accountability moving.
-            </CardDescription>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <HeartHandshake className="size-4 text-primary" aria-hidden />
+              Prayer requests summary
+            </CardTitle>
+            <CardDescription>Care moments that need gentle attention this week.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {reminders.map((item) => (
-              <div
-                key={item}
-                className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-background/60 px-3 py-2.5"
-              >
-                <BellRing className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                <p className="text-sm text-muted-foreground">{item}</p>
-              </div>
+            {prayerSummary.map((line) => (
+              <p key={line} className="rounded-lg border border-border/60 bg-background/65 px-3 py-2 text-sm text-muted-foreground">
+                {line}
+              </p>
             ))}
           </CardContent>
         </Card>
@@ -228,24 +98,96 @@ export function DashboardHome() {
       <section className="mt-6">
         <Card className="border-border/70 bg-card/80 shadow-[0_14px_35px_-30px_rgba(15,23,42,0.55)]">
           <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Gift className="size-4 text-primary" aria-hidden />
+              Giving summary
+            </CardTitle>
             <CardDescription>
-              Start common tasks quickly while you plan the rest of your day.
+              A simple stewardship snapshot for your personal view this month.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {quickActions.map((action) => (
-              <Button
-                key={action.label}
-                variant="outline"
-                className="h-11 justify-between rounded-xl border-border/80 bg-background/70 px-4"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <action.icon className="size-4 text-primary" aria-hidden />
-                  {action.label}
-                </span>
-                <ArrowRight className="size-4 text-muted-foreground" aria-hidden />
-              </Button>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-border/60 bg-background/65 px-4 py-3">
+                <p className="text-xs text-muted-foreground">This month</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">₦45,000</p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/65 px-4 py-3">
+                <p className="text-xs text-muted-foreground">Last gift</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">₦10,000</p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/65 px-4 py-3">
+                <p className="text-xs text-muted-foreground">Category</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">Offering</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mt-6 grid gap-4 lg:grid-cols-2">
+        <Card className="border-border/70 bg-card/80 shadow-[0_14px_35px_-30px_rgba(15,23,42,0.55)]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <PartyPopper className="size-4 text-primary" aria-hidden />
+              My celebrations
+            </CardTitle>
+            <CardDescription>
+              Joyful moments from your church family this week.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {celebrations.map((item) => (
+              <p key={item} className="rounded-lg border border-border/60 bg-background/65 px-3 py-2 text-sm text-muted-foreground">
+                {item}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70 bg-card/80 shadow-[0_14px_35px_-30px_rgba(15,23,42,0.55)]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Bell className="size-4 text-primary" aria-hidden />
+              Notifications preview
+            </CardTitle>
+            <CardDescription>
+              A quick glance at recent updates relevant to you.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {notifications.map((item) => (
+              <div key={item.title} className="rounded-xl border border-border/60 bg-background/65 px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm text-foreground">{item.title}</p>
+                  <span className="shrink-0 text-xs text-muted-foreground">{item.time}</span>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mt-6">
+        <Card className="border-border/70 bg-card/75 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.5)]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <MessageCircleHeart className="size-4 text-primary" aria-hidden />
+              Community feed preview
+            </CardTitle>
+            <CardDescription>
+              Shared moments from church life to keep you connected and encouraged.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {communityFeed.map((post) => (
+              <div key={post.message} className="rounded-xl border border-border/60 bg-background/60 px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">{post.author}</p>
+                  <span className="text-xs text-muted-foreground">{post.time}</span>
+                </div>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{post.message}</p>
+              </div>
             ))}
           </CardContent>
         </Card>
