@@ -162,3 +162,26 @@
     @apply font-sans;
   }
 }
+
+@keyframes shepherd-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .shepherd-fade-in {
+    animation: shepherd-fade-in-up 320ms ease-out both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shepherd-fade-in {
+      animation: none;
+    }
+  }
+}

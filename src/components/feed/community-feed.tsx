@@ -202,7 +202,7 @@ export function CommunityFeed({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-border/70 bg-card/80 p-4 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.6)]">
+      <div className="rounded-xl border border-border/70 bg-card/80 p-4 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.6)] transition-[border-color,box-shadow,transform] duration-250 ease-out focus-within:-translate-y-[1px] focus-within:border-white/20 focus-within:shadow-[0_18px_34px_-24px_rgba(0,0,0,0.72)] motion-reduce:transition-none motion-reduce:focus-within:translate-y-0">
         <div className="flex items-start gap-3">
           <div
             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-xs font-semibold text-primary"
@@ -275,7 +275,7 @@ export function CommunityFeed({
         return (
           <article
             key={post.id}
-            className="rounded-xl border border-border/60 bg-background/60 px-4 py-3"
+            className="rounded-xl border border-border/60 bg-background/60 px-4 py-3 transition-[transform,border-color,box-shadow] duration-250 ease-out hover:-translate-y-[1px] hover:border-white/20 hover:shadow-[0_12px_28px_-20px_rgba(0,0,0,0.68)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -297,8 +297,9 @@ export function CommunityFeed({
                 variant="outline"
                 size="sm"
                 className={cn(
-                  "h-8 rounded-lg border-border/70 bg-background/80 text-xs",
-                  liked && "border-primary/35 bg-primary/10 text-foreground",
+                  "h-8 rounded-lg border-border/70 bg-background/80 text-xs transition-[transform,background-color,border-color,box-shadow,color] duration-200 ease-out hover:-translate-y-[1px] hover:bg-white/[0.11] hover:shadow-[0_10px_18px_-16px_rgba(0,0,0,0.6)] motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                  liked &&
+                    "border-primary/40 bg-primary/12 text-foreground shadow-[0_10px_20px_-16px_rgba(59,130,246,0.65)]",
                 )}
                 onClick={() =>
                   setLikedPostIds((current) => ({
@@ -318,7 +319,7 @@ export function CommunityFeed({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 rounded-lg border-border/70 bg-background/80 text-xs"
+                className="h-8 rounded-lg border-border/70 bg-background/80 text-xs transition-[transform,background-color,border-color,box-shadow,color] duration-200 ease-out hover:-translate-y-[1px] hover:bg-white/[0.11] hover:shadow-[0_10px_18px_-16px_rgba(0,0,0,0.6)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
                 onClick={() =>
                   setOpenCommentsPostIds((current) => ({
                     ...current,

@@ -63,10 +63,10 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-[background-color,color,box-shadow,transform] duration-250 ease-out motion-reduce:transition-none",
                 isActive
-                  ? "bg-white/10 text-white"
-                  : "text-gray-400 hover:bg-white/[0.08] hover:text-white",
+                  ? "bg-white/10 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:rounded-full before:bg-primary before:shadow-[0_0_12px_rgba(59,130,246,0.75)]"
+                  : "text-gray-400 hover:-translate-y-[1px] hover:bg-white/[0.11] hover:text-white",
               )}
             >
               <item.icon

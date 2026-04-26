@@ -44,7 +44,7 @@ export function Topbar({
       </div>
 
       <div className="hidden items-center gap-2.5 md:flex">
-        <div className="group flex h-10 w-72 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 text-sm text-gray-400 transition-colors focus-within:border-primary/45 focus-within:bg-white/[0.08] lg:w-80">
+        <div className="group flex h-10 w-72 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 text-sm text-gray-400 transition-[border-color,background-color,box-shadow] duration-250 ease-out focus-within:border-primary/45 focus-within:bg-white/[0.08] focus-within:ring-2 focus-within:ring-primary/20 lg:w-80">
           <Search className="size-4" aria-hidden />
           <span className="truncate">Search people, groups, records</span>
         </div>
@@ -80,7 +80,7 @@ export function Topbar({
         <Bell className="size-4" aria-hidden />
       </Button>
 
-      <div className="hidden min-w-[180px] items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 sm:flex">
+      <div className="hidden min-w-[180px] items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 transition-[background-color,border-color,transform] duration-250 ease-out hover:-translate-y-[1px] hover:border-white/20 hover:bg-white/[0.1] sm:flex">
         <div className="flex items-center gap-2.5">
         <UserCircle2 className="size-4 text-gray-400" aria-hidden />
         <div className="leading-tight">
