@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, Menu, Search, Sparkles, UserCircle2 } from "lucide-react";
+import { Bell, BriefcaseBusiness, Menu, Search, Sparkles, UserCircle2 } from "lucide-react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,10 +9,16 @@ import { cn } from "@/lib/utils";
 type TopbarProps = {
   title: string;
   onOpenSidebar: () => void;
+  showLeadershipConsole?: boolean;
   className?: string;
 };
 
-export function Topbar({ title, onOpenSidebar, className }: TopbarProps) {
+export function Topbar({
+  title,
+  onOpenSidebar,
+  showLeadershipConsole = false,
+  className,
+}: TopbarProps) {
   return (
     <header
       className={cn(
@@ -46,6 +53,15 @@ export function Topbar({ title, onOpenSidebar, className }: TopbarProps) {
           Quick actions
         </Button>
       </div>
+
+      {showLeadershipConsole ? (
+        <Button asChild variant="outline" size="sm" className="gap-1.5 rounded-xl">
+          <Link href="/admin">
+            <BriefcaseBusiness className="size-4" aria-hidden />
+            Leadership Console
+          </Link>
+        </Button>
+      ) : null}
 
       <Button variant="ghost" size="icon" aria-label="Notifications">
         <Bell className="size-4" aria-hidden />

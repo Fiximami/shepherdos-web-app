@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { routes } from "@/lib/constants/navigation";
+import { mockUser } from "@/lib/mock-user";
 
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -24,6 +25,8 @@ const pageTitles: Record<string, string> = {
   [routes.app.profile]: "Profile",
 };
 
+const leadershipRoles = new Set(["admin", "pastor", "finance", "leader"]);
+
 type DashboardShellProps = {
   children: ReactNode;
 };
@@ -36,6 +39,8 @@ export function DashboardShell({ children }: DashboardShellProps) {
     return pageTitles[pathname] ?? "Workspace";
   }, [pathname]);
 
+  const showLeadershipConsole = leadershipRoles.has(mockUser.role);
+
   return (
     <div className="min-h-svh bg-background text-foreground">
       <div className="mx-auto grid min-h-svh w-full max-w-[1600px] grid-cols-1 gap-4 p-3 md:grid-cols-[260px_minmax(0,1fr)] md:p-4 lg:gap-5 lg:p-5">
@@ -44,7 +49,11 @@ export function DashboardShell({ children }: DashboardShellProps) {
         </div>
 
         <div className="flex min-w-0 flex-col">
-          <Topbar title={title} onOpenSidebar={() => setIsMobileSidebarOpen(true)} />
+          <Topbar
+            title={title}
+            onOpenSidebar={() => setIsMobileSidebarOpen(true)}
+            showLeadershipConsole={showLeadershipConsole}
+          />
           <main className="mt-4 min-w-0 flex-1 rounded-2xl border border-border/70 bg-card/35 p-4 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.5)] sm:p-5 lg:p-6">
             {children}
           </main>
