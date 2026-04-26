@@ -84,6 +84,23 @@ export function DashboardHome() {
       </section>
 
       <section className="mt-6">
+        <Card className="border-border/70 bg-card/75 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.5)]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <MessageCircleHeart className="size-4 text-primary" aria-hidden />
+              Community feed preview
+            </CardTitle>
+            <CardDescription>
+              Shared moments from church life to keep you connected and encouraged.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <CommunityFeed maxPosts={4} showViewAllLink viewAllHref="/engagement" />
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mt-6">
         <Card className="border-border/70 bg-card/80 shadow-[0_14px_35px_-30px_rgba(15,23,42,0.55)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -109,6 +126,23 @@ export function DashboardHome() {
                 <p className="mt-1 text-lg font-semibold text-foreground">Offering</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mt-6">
+        <Card className="border-border/70 bg-card/75 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.5)]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <MessageCircleHeart className="size-4 text-primary" aria-hidden />
+              Community feed preview
+            </CardTitle>
+            <CardDescription>
+              Shared moments from church life to keep you connected and encouraged.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <CommunityFeed maxPosts={4} showViewAllLink viewAllHref="/engagement" />
           </CardContent>
         </Card>
       </section>
@@ -156,22 +190,6 @@ export function DashboardHome() {
         </Card>
       </section>
 
-      <section className="mt-6">
-        <Card className="border-border/70 bg-card/75 shadow-[0_12px_30px_-28px_rgba(15,23,42,0.5)]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <MessageCircleHeart className="size-4 text-primary" aria-hidden />
-              Community feed preview
-            </CardTitle>
-            <CardDescription>
-              Shared moments from church life to keep you connected and encouraged.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <CommunityFeed />
-          </CardContent>
-        </Card>
-      </section>
     </main>
   );
 }

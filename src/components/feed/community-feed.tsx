@@ -1,10 +1,12 @@
 "use client";
 
 import { Heart, MessageCircle } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { mockUser } from "@/lib/mock-user";
 import { cn } from "@/lib/utils";
 
 type FeedComment = {
@@ -17,6 +19,7 @@ type FeedComment = {
 type FeedPost = {
   id: string;
   author: string;
+  type: "Update" | "Testimony" | "Prayer Request" | "Announcement";
   message: string;
   time: string;
   likes: number;
@@ -27,6 +30,7 @@ const initialPosts: FeedPost[] = [
   {
     id: "post-1",
     author: "Grace Community Team",
+    type: "Update",
     message:
       "Thank you to everyone who served at outreach this weekend. 18 families were visited.",
     time: "Today",
@@ -49,6 +53,7 @@ const initialPosts: FeedPost[] = [
   {
     id: "post-2",
     author: "Hospitality Ministry",
+    type: "Announcement",
     message:
       "New volunteers orientation starts after service next Sunday. Please invite anyone ready to serve.",
     time: "Yesterday",
@@ -74,18 +79,194 @@ const initialPosts: FeedPost[] = [
       },
     ],
   },
+  {
+    id: "post-3",
+    author: "Youth Ministry",
+    type: "Testimony",
+    message:
+      "Thank you to parents and mentors who joined the youth prayer night. Next gathering is this Friday.",
+    time: "2 days ago",
+    likes: 9,
+    comments: [
+      {
+        id: "c-6",
+        author: "Miriam Osei",
+        message: "My son came home encouraged. Grateful for the team.",
+        time: "2 days ago",
+      },
+      {
+        id: "c-7",
+        author: "Daniel K.",
+        message: "Can we share transport details by Thursday?",
+        time: "1 day ago",
+      },
+    ],
+  },
+  {
+    id: "post-4",
+    author: "Care Team",
+    type: "Prayer Request",
+    message:
+      "Three home visits were completed this week. Please continue praying for comfort and recovery.",
+    time: "3 days ago",
+    likes: 14,
+    comments: [
+      {
+        id: "c-8",
+        author: "Deborah Afolabi",
+        message: "Thank you everyone who made time to serve quietly.",
+        time: "2 days ago",
+      },
+      {
+        id: "c-9",
+        author: "Ruth Eze",
+        message: "Happy to support with meal scheduling this week.",
+        time: "2 days ago",
+      },
+      {
+        id: "c-10",
+        author: "Samuel Okoro",
+        message: "Please share any extra support needs with the group lead.",
+        time: "1 day ago",
+      },
+    ],
+  },
 ];
 
-export function CommunityFeed() {
+type CommunityFeedProps = {
+  maxPosts?: number;
+  showViewAllLink?: boolean;
+  viewAllHref?: string;
+};
+
+const leadershipRoles = new Set(["admin", "pastor", "leader", "owner"]);
+
+const memberPostTypes = ["Update", "Testimony", "Prayer Request"] as const;
+const leadershipPostTypes = [
+  "Update",
+  "Testimony",
+  "Prayer Request",
+  "Announcement",
+] as const;
+
+export function CommunityFeed({
+  maxPosts = 5,
+  showViewAllLink = false,
+  viewAllHref = "/engagement",
+}: CommunityFeedProps) {
+  const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
   const [likedPostIds, setLikedPostIds] = useState<Record<string, boolean>>({});
   const [openCommentsPostIds, setOpenCommentsPostIds] = useState<Record<string, boolean>>({});
   const [draftByPostId, setDraftByPostId] = useState<Record<string, string>>({});
+  const [newPostText, setNewPostText] = useState("");
+  const [newPostType, setNewPostType] = useState<
+    "Update" | "Testimony" | "Prayer Request" | "Announcement"
+  >("Update");
+  const [composerMessage, setComposerMessage] = useState("");
 
-  const posts = useMemo(() => initialPosts, []);
+  const availablePostTypes = leadershipRoles.has(mockUser.role)
+    ? leadershipPostTypes
+    : memberPostTypes;
+
+  const visiblePosts = useMemo(() => posts.slice(0, maxPosts), [posts, maxPosts]);
+  const userInitials = useMemo(() => {
+    return mockUser.name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }, []);
+  const isPostDisabled = newPostText.trim().length === 0;
+
+  const handleCreatePost = () => {
+    if (isPostDisabled) {
+      setComposerMessage("Please share a short thought before posting.");
+      return;
+    }
+
+    const createdPost: FeedPost = {
+      id: `post-${Date.now()}`,
+      author: mockUser.name,
+      type: newPostType,
+      message: newPostText.trim(),
+      time: "Just now",
+      likes: 0,
+      comments: [],
+    };
+
+    setPosts((current) => [createdPost, ...current]);
+    setNewPostText("");
+    setComposerMessage("Posted. Thank you for sharing with care.");
+  };
 
   return (
     <div className="space-y-3">
-      {posts.map((post) => {
+      <div className="rounded-xl border border-border/70 bg-card/80 p-4 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.6)]">
+        <div className="flex items-start gap-3">
+          <div
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-xs font-semibold text-primary"
+            aria-hidden
+          >
+            {userInitials}
+          </div>
+          <div className="min-w-0 flex-1 space-y-3">
+            <textarea
+              value={newPostText}
+              onChange={(event) => {
+                setNewPostText(event.target.value);
+                if (composerMessage) {
+                  setComposerMessage("");
+                }
+              }}
+              placeholder="Share something with your church..."
+              rows={3}
+              className="w-full resize-y rounded-lg border border-border/70 bg-background/75 px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            />
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-border/70 bg-background/70 px-3 text-sm">
+                <span className="text-xs text-muted-foreground">Post type</span>
+                <select
+                  value={newPostType}
+                  onChange={(event) =>
+                    setNewPostType(
+                      event.target.value as
+                        | "Update"
+                        | "Testimony"
+                        | "Prayer Request"
+                        | "Announcement",
+                    )
+                  }
+                  className="bg-transparent text-sm text-foreground outline-none"
+                >
+                  {availablePostTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <Button
+                type="button"
+                size="sm"
+                className="h-9 rounded-lg px-4"
+                onClick={handleCreatePost}
+                disabled={isPostDisabled}
+              >
+                Post
+              </Button>
+            </div>
+
+            {composerMessage ? (
+              <p className="text-xs text-muted-foreground">{composerMessage}</p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {visiblePosts.map((post) => {
         const liked = Boolean(likedPostIds[post.id]);
         const isCommentsOpen = Boolean(openCommentsPostIds[post.id]);
         const likeCount = liked ? post.likes + 1 : post.likes;
@@ -97,7 +278,12 @@ export function CommunityFeed() {
             className="rounded-xl border border-border/60 bg-background/60 px-4 py-3"
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium text-foreground">{post.author}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-foreground">{post.author}</p>
+                <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {post.type}
+                </span>
+              </div>
               <span className="text-xs text-muted-foreground">{post.time}</span>
             </div>
 
@@ -185,6 +371,17 @@ export function CommunityFeed() {
           </article>
         );
       })}
+
+      {showViewAllLink ? (
+        <div className="pt-1 text-right">
+          <Link
+            href={viewAllHref}
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            View All Feed
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }
