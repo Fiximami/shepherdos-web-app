@@ -35,7 +35,17 @@ const mockNotifications: NotificationItem[] = [
   },
 ];
 
-const leadershipRoles = new Set(["admin", "owner", "pastor", "finance", "leader"]);
+const leadershipRoles = new Set([
+  "admin",
+  "church_admin",
+  "owner",
+  "church_owner",
+  "pastor",
+  "finance",
+  "finance_officer",
+  "leader",
+  "ministry_leader",
+]);
 
 export function NotificationsMenu({ role }: { role: string }) {
   const [isOpen, setIsOpen] = useState(false);

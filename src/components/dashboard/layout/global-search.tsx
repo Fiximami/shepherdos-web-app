@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -36,9 +36,11 @@ const searchableRecords: SearchRecord[] = [
 ];
 
 export function GlobalSearch({ className }: { className?: string }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   const filteredResults = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -64,28 +66,84 @@ export function GlobalSearch({ className }: { className?: string }) {
   const hasQuery = query.trim().length > 0;
   const showPanel = isOpen && hasQuery;
 
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!containerRef.current) {
+        return;
+      }
+
+      if (!containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, []);
+
+  function handleSelect(title: string) {
+    setFeedback(`"${title}" is ready for navigation.`);
+    setIsOpen(false);
+  }
+
   return (
-    <div className={cn("relative w-full max-w-xl", className)}>
+    <div ref={containerRef} className={cn("relative w-full max-w-xl", className)}>
       <div className="group flex h-10 w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3.5 text-sm text-gray-400 transition-[border-color,background-color,box-shadow] duration-250 ease-out focus-within:border-primary/45 focus-within:bg-white/[0.08] focus-within:ring-2 focus-within:ring-primary/20">
         <Search className="size-4" aria-hidden />
         <input
           value={query}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const nextQuery = event.target.value;
+            setQuery(nextQuery);
             setFeedback("");
+            setIsOpen(true);
+            setActiveIndex(nextQuery.trim().length > 0 ? 0 : -1);
           }}
           onFocus={() => setIsOpen(true)}
-          onBlur={() => {
-            setTimeout(() => setIsOpen(false), 120);
+          onKeyDown={(event) => {
+            if (!showPanel) {
+              return;
+            }
+
+            if (event.key === "Escape") {
+              setIsOpen(false);
+              return;
+            }
+
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setActiveIndex((prev) => Math.min(prev + 1, filteredResults.length - 1));
+              return;
+            }
+
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              setActiveIndex((prev) => Math.max(prev - 1, 0));
+              return;
+            }
+
+            if (event.key === "Enter" && activeIndex >= 0 && filteredResults[activeIndex]) {
+              event.preventDefault();
+              handleSelect(filteredResults[activeIndex].title);
+            }
           }}
           placeholder="Search people, groups, events, records..."
           className="w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-400"
           aria-label="Global search"
+          aria-expanded={showPanel}
+          aria-controls="global-search-results"
+          role="combobox"
         />
       </div>
 
       {showPanel ? (
-        <div className="absolute right-0 z-40 mt-2 max-h-[24rem] w-full overflow-auto rounded-xl border border-white/10 bg-[#102338]/95 p-2 shadow-[0_24px_50px_-30px_rgba(0,0,0,0.85)] backdrop-blur-xl">
+        <div
+          id="global-search-results"
+          className="absolute right-0 z-40 mt-2 max-h-[24rem] w-full overflow-auto rounded-xl border border-white/10 bg-[#102338]/95 p-2 shadow-[0_24px_50px_-30px_rgba(0,0,0,0.85)] backdrop-blur-xl"
+          role="listbox"
+        >
           {filteredResults.length === 0 ? (
             <div className="rounded-lg px-3 py-3 text-sm text-gray-400">
               No matching records found.
@@ -97,18 +155,28 @@ export function GlobalSearch({ className }: { className?: string }) {
                   {group}
                 </p>
                 <div className="space-y-1">
-                  {items.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => setFeedback(`"${item.title}" is ready for navigation.`)}
-                      className="block w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-white/[0.08]"
-                    >
-                      <p className="text-sm text-white">{item.title}</p>
-                      <p className="text-xs text-gray-400">{item.subtitle}</p>
-                    </button>
-                  ))}
+                  {items.map((item) => {
+                    const resultIndex = filteredResults.findIndex((entry) => entry.id === item.id);
+                    const isActive = resultIndex === activeIndex;
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onMouseEnter={() => setActiveIndex(resultIndex)}
+                        onClick={() => handleSelect(item.title)}
+                        className={cn(
+                          "block w-full rounded-lg px-3 py-2 text-left transition-colors",
+                          isActive ? "bg-white/[0.12]" : "hover:bg-white/[0.08]",
+                        )}
+                        role="option"
+                        aria-selected={isActive}
+                      >
+                        <p className="text-sm text-white">{item.title}</p>
+                        <p className="text-xs text-gray-400">{item.subtitle}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))

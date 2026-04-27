@@ -11,7 +11,6 @@ import { QuickActions } from "@/components/dashboard/layout/quick-actions";
 import { UserMenu } from "@/components/dashboard/layout/user-menu";
 import { Button } from "@/components/ui/button";
 import { mockUser } from "@/lib/mock-user";
-import { mockWorkspace } from "@/lib/mock-workspace";
 import { cn } from "@/lib/utils";
 
 type TopbarProps = {
@@ -30,9 +29,14 @@ export function Topbar({
   const [logoMissing, setLogoMissing] = useState(false);
 
   const role = mockUser.role;
+  const permissions = mockUser.permissions;
   const canAccessLeadershipConsole = useMemo(
-    () => showLeadershipConsole && role !== "member",
-    [role, showLeadershipConsole],
+    () =>
+      showLeadershipConsole &&
+      (role !== "member" ||
+        permissions.includes("users:manage") ||
+        permissions.includes("settings:manage")),
+    [permissions, role, showLeadershipConsole],
   );
 
   return (
@@ -55,19 +59,19 @@ export function Topbar({
       <div className="min-w-0 flex flex-1 items-center md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-6">
         <div className="min-w-[220px]">
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/12 bg-white/[0.08]">
-            {mockWorkspace.churchLogo && !logoMissing ? (
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/12 bg-white/[0.08] p-1">
+            {mockUser.churchLogo && !logoMissing ? (
               <Image
-                src={mockWorkspace.churchLogo}
-                alt={`${mockWorkspace.churchName} logo`}
-                width={28}
-                height={28}
-                className="size-7 object-contain"
+                src={mockUser.churchLogo}
+                alt={`${mockUser.churchName} logo`}
+                fill
+                sizes="40px"
+                className="object-contain"
                 onError={() => setLogoMissing(true)}
               />
             ) : (
-              <span className="text-xs font-semibold text-white">
-                {mockWorkspace.churchName
+              <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">
+                {mockUser.churchName
                   .split(" ")
                   .map((word) => word[0])
                   .join("")
@@ -78,22 +82,22 @@ export function Topbar({
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold tracking-tight text-white">
-                {mockWorkspace.churchName}
+                {mockUser.churchName}
               </p>
               <p className="truncate text-xs text-gray-400">
-                {title} · {mockWorkspace.workspaceLabel}
+                {title} · ShepherdOS workspace
               </p>
             </div>
           </div>
         </div>
 
-        <div className="hidden px-2 md:flex md:justify-center">
+        <div className="hidden min-w-0 px-2 md:flex md:justify-center">
           <GlobalSearch />
         </div>
 
         <div className="ml-auto flex items-center gap-2.5">
           <div className="hidden md:block">
-            <QuickActions role={role} />
+            <QuickActions permissions={permissions} />
           </div>
 
           {canAccessLeadershipConsole ? (
@@ -110,7 +114,12 @@ export function Topbar({
           ) : null}
 
           <NotificationsMenu role={role} />
-          <UserMenu name={mockUser.name} role={role} workspace={mockWorkspace.churchName} />
+          <UserMenu
+            name={mockUser.name}
+            role={role}
+            roleLabel={mockUser.roleLabel}
+            workspace={mockUser.churchName}
+          />
         </div>
       </div>
     </header>

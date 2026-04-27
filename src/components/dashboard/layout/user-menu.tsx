@@ -18,14 +18,18 @@ const roleLabels: Record<string, string> = {
 type UserMenuProps = {
   name: string;
   role: string;
+  roleLabel?: string;
   workspace: string;
 };
 
-export function UserMenu({ name, role, workspace }: UserMenuProps) {
+export function UserMenu({ name, role, roleLabel, workspace }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
 
-  const roleLabel = useMemo(() => roleLabels[role] ?? "Team Member", [role]);
+  const resolvedRoleLabel = useMemo(
+    () => roleLabel ?? roleLabels[role] ?? "Team Member",
+    [role, roleLabel],
+  );
 
   return (
     <div className="relative hidden sm:block">
@@ -39,7 +43,7 @@ export function UserMenu({ name, role, workspace }: UserMenuProps) {
           <UserCircle2 className="size-4 text-gray-400" aria-hidden />
           <div className="leading-tight">
             <p className="text-xs font-semibold text-white">{name}</p>
-            <p className="text-[11px] text-gray-400">{roleLabel}</p>
+            <p className="text-[11px] text-gray-400">{resolvedRoleLabel}</p>
           </div>
         </div>
         <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] uppercase tracking-wide text-gray-400">
@@ -54,7 +58,7 @@ export function UserMenu({ name, role, workspace }: UserMenuProps) {
         >
           <div className="mb-2 rounded-lg bg-white/[0.05] px-3 py-2">
             <p className="text-sm font-medium text-white">{name}</p>
-            <p className="text-xs text-gray-400">{roleLabel}</p>
+            <p className="text-xs text-gray-400">{resolvedRoleLabel}</p>
             <p className="mt-1 text-[11px] text-gray-400">{workspace}</p>
           </div>
 

@@ -1,78 +1,174 @@
 "use client";
 
-import { CalendarDays, ClipboardList, HandCoins, Megaphone, PlusCircle, UserPlus } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardList,
+  HandCoins,
+  Handshake,
+  HeartHandshake,
+  Megaphone,
+  PlusCircle,
+  ReceiptText,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import type { ComponentType } from "react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { routes } from "@/lib/constants/navigation";
-
-type Role = string;
+import type { Permission } from "@/lib/mock-user";
 
 type QuickAction = {
   id: string;
   label: string;
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  permission: Permission;
   href?: string;
-  leadershipOnly?: boolean;
   placeholderMessage?: string;
 };
 
-const actions: QuickAction[] = [
-  {
+const actionCatalog: Record<string, QuickAction> = {
+  addMember: {
     id: "add-member",
     label: "Add Member",
     icon: UserPlus,
-    leadershipOnly: true,
+    permission: "members:create",
     placeholderMessage: "Add Member form will be connected soon.",
   },
-  {
-    id: "record-attendance",
-    label: "Record Attendance",
-    icon: ClipboardList,
-    href: routes.app.attendance,
-    leadershipOnly: true,
-  },
-  {
+  createAnnouncement: {
     id: "create-announcement",
     label: "Create Announcement",
     icon: Megaphone,
+    permission: "announcements:create",
     href: routes.app.communication,
-    leadershipOnly: true,
   },
-  {
-    id: "record-transaction",
-    label: "Record Transaction",
-    icon: HandCoins,
-    href: routes.app.finance,
-    leadershipOnly: true,
-  },
-  {
+  addEvent: {
     id: "add-event",
     label: "Add Event",
     icon: CalendarDays,
+    permission: "events:create",
     href: routes.app.events,
-    leadershipOnly: true,
   },
-  {
+  recordAttendance: {
+    id: "record-attendance",
+    label: "Record Attendance",
+    icon: ClipboardList,
+    permission: "attendance:record",
+    href: routes.app.attendance,
+  },
+  assignFollowUp: {
+    id: "assign-follow-up",
+    label: "Assign Follow-up",
+    icon: Handshake,
+    permission: "followups:assign",
+    href: routes.app.engagement,
+  },
+  recordTransaction: {
+    id: "record-transaction",
+    label: "Record Transaction",
+    icon: HandCoins,
+    permission: "finance:record",
+    href: routes.app.finance,
+  },
+  reviewGiving: {
+    id: "review-giving",
+    label: "Review Giving",
+    icon: ReceiptText,
+    permission: "payments:create",
+    href: routes.app.finance,
+  },
+  approveExpense: {
+    id: "approve-expense",
+    label: "Approve Expense",
+    icon: ReceiptText,
+    permission: "finance:approve",
+    placeholderMessage: "Expense approval flow will be connected soon.",
+  },
+  exportFinanceReport: {
+    id: "export-finance-report",
+    label: "Export Finance Report",
+    icon: ReceiptText,
+    permission: "finance:report",
+    placeholderMessage: "Finance report export will be connected soon.",
+  },
+  addFirstTimer: {
+    id: "add-first-timer",
+    label: "Add First-Timer",
+    icon: Users,
+    permission: "members:create",
+    placeholderMessage: "First-Timer quick add will be connected soon.",
+  },
+  createFeedPost: {
     id: "create-feed-post",
     label: "Create Feed Post",
     icon: PlusCircle,
+    permission: "feed:create",
     href: routes.app.engagement,
   },
-];
+  giveOrPay: {
+    id: "give-or-make-payment",
+    label: "Give / Make Payment",
+    icon: HandCoins,
+    permission: "payments:create",
+    href: routes.app.finance,
+  },
+  submitPrayerRequest: {
+    id: "submit-prayer-request",
+    label: "Submit Prayer Request",
+    icon: HeartHandshake,
+    permission: "prayer:create",
+    href: routes.app.engagement,
+  },
+  registerForEvent: {
+    id: "register-for-event",
+    label: "Register for Event",
+    icon: CalendarDays,
+    permission: "events:register",
+    href: routes.app.events,
+  },
+  inviteSomeone: {
+    id: "invite-someone",
+    label: "Invite Someone",
+    icon: UserPlus,
+    permission: "invites:create",
+    placeholderMessage: "Invite flow will be connected soon.",
+  },
+};
 
-const leadershipRoles = new Set(["admin", "owner", "pastor", "finance", "leader"]);
+const actionOrder = [
+  "addMember",
+  "createAnnouncement",
+  "addEvent",
+  "recordAttendance",
+  "assignFollowUp",
+  "recordTransaction",
+  "reviewGiving",
+  "approveExpense",
+  "exportFinanceReport",
+  "addFirstTimer",
+  "createFeedPost",
+  "giveOrPay",
+  "submitPrayerRequest",
+  "registerForEvent",
+  "inviteSomeone",
+] as const;
 
-export function QuickActions({ role }: { role: Role }) {
+export function QuickActions({
+  permissions,
+}: {
+  permissions: readonly Permission[];
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
 
   const visibleActions = useMemo(() => {
-    const isLeadership = leadershipRoles.has(role);
-    return actions.filter((action) => (action.leadershipOnly ? isLeadership : true));
-  }, [role]);
+    const allowed = new Set(permissions);
+    return actionOrder
+      .map((id) => actionCatalog[id])
+      .filter((action) => allowed.has(action.permission));
+  }, [permissions]);
 
   return (
     <div className="relative">
