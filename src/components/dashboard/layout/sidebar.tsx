@@ -23,13 +23,13 @@ import { cn } from "@/lib/utils";
 const memberSidebarItems = [
   { label: "My Dashboard", href: routes.app.dashboard, icon: LayoutGrid },
   { label: "My Profile", href: routes.app.profile, icon: CircleUserRound },
-  { label: "Community Feed", href: `${routes.app.dashboard}#community-feed`, icon: MessageCircleHeart },
+  { label: "Community Feed", href: routes.app.feed, icon: MessageCircleHeart },
   { label: "Events", href: routes.app.events, icon: CalendarDays },
-  { label: "Prayer Requests", href: routes.app.engagement, icon: HeartHandshake },
-  { label: "Giving", href: routes.app.finance, icon: Wallet },
-  { label: "My Celebrations", href: `${routes.app.dashboard}#celebrations`, icon: Gift },
-  { label: "Notifications", href: `${routes.app.dashboard}#notifications`, icon: Bell },
-  { label: "Messages", href: `${routes.app.dashboard}#messages`, icon: MessagesSquare },
+  { label: "Prayer Requests", href: routes.app.prayerRequests, icon: HeartHandshake },
+  { label: "Giving", href: routes.app.giving, icon: Wallet },
+  { label: "My Celebrations", href: routes.app.celebrations, icon: Gift },
+  { label: "Notifications", href: routes.app.notifications, icon: Bell },
+  { label: "Messages", href: routes.app.messages, icon: MessagesSquare },
   { label: "Settings", href: routes.app.settings, icon: Settings },
 ] as const;
 

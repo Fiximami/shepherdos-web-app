@@ -137,6 +137,7 @@ type CommunityFeedProps = {
   maxPosts?: number;
   showViewAllLink?: boolean;
   viewAllHref?: string;
+  showFilters?: boolean;
 };
 
 const leadershipRoles = new Set(["admin", "pastor", "leader", "owner"]);
@@ -153,6 +154,7 @@ export function CommunityFeed({
   maxPosts = 5,
   showViewAllLink = false,
   viewAllHref = "/engagement",
+  showFilters = false,
 }: CommunityFeedProps) {
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
   const [likedPostIds, setLikedPostIds] = useState<Record<string, boolean>>({});
@@ -163,12 +165,22 @@ export function CommunityFeed({
     "Update" | "Testimony" | "Prayer Request" | "Announcement"
   >("Update");
   const [composerMessage, setComposerMessage] = useState("");
+  const [activeFilter, setActiveFilter] = useState<
+    "All" | "Update" | "Testimony" | "Prayer Request" | "Announcement"
+  >("All");
 
   const availablePostTypes = leadershipRoles.has(mockUser.role)
     ? leadershipPostTypes
     : memberPostTypes;
 
-  const visiblePosts = useMemo(() => posts.slice(0, maxPosts), [posts, maxPosts]);
+  const filteredPosts = useMemo(() => {
+    if (activeFilter === "All") {
+      return posts;
+    }
+    return posts.filter((post) => post.type === activeFilter);
+  }, [activeFilter, posts]);
+
+  const visiblePosts = useMemo(() => filteredPosts.slice(0, maxPosts), [filteredPosts, maxPosts]);
   const userInitials = useMemo(() => {
     return mockUser.name
       .split(" ")
@@ -265,6 +277,51 @@ export function CommunityFeed({
           </div>
         </div>
       </div>
+
+      {showFilters ? (
+        <div className="rounded-xl border border-border/70 bg-card/70 p-2.5 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.6)]">
+          <p className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Feed filters
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                { label: "All", value: "All" },
+                { label: "Updates", value: "Update" },
+                { label: "Testimonies", value: "Testimony" },
+                { label: "Prayer", value: "Prayer Request" },
+                { label: "Announcements", value: "Announcement" },
+              ] as const
+            ).map((filter) => {
+              const isActive = activeFilter === filter.value;
+              return (
+                <button
+                  key={filter.value}
+                  type="button"
+                  onClick={() => setActiveFilter(filter.value)}
+                  className={cn(
+                    "rounded-lg border px-3 py-1.5 text-xs transition-[background-color,border-color,color,transform] duration-200 ease-out hover:-translate-y-[1px] motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+                    isActive
+                      ? "border-primary/40 bg-primary/12 text-foreground"
+                      : "border-border/70 bg-background/60 text-muted-foreground hover:bg-white/[0.08] hover:text-foreground",
+                  )}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {visiblePosts.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border/80 bg-background/45 px-4 py-10 text-center">
+          <p className="text-sm font-medium text-foreground">No posts in this view yet.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Try another filter or share the first encouragement with your church family.
+          </p>
+        </div>
+      ) : null}
 
       {visiblePosts.map((post) => {
         const liked = Boolean(likedPostIds[post.id]);

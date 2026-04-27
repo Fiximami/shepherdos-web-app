@@ -15,6 +15,12 @@ import { Topbar } from "./topbar";
 const pageTitles: Record<string, string> = {
   "/admin": "Leadership Console",
   [routes.app.dashboard]: "Dashboard",
+  [routes.app.feed]: "Community Feed",
+  [routes.app.prayerRequests]: "Prayer Requests",
+  [routes.app.giving]: "Giving",
+  [routes.app.celebrations]: "My Celebrations",
+  [routes.app.notifications]: "Notifications",
+  [routes.app.messages]: "Messages",
   [routes.app.members]: "Members",
   [routes.app.attendance]: "Attendance",
   [routes.app.finance]: "Finance",

@@ -6,6 +6,12 @@ export const routes = {
   },
   app: {
     dashboard: "/dashboard",
+    feed: "/feed",
+    prayerRequests: "/prayer-requests",
+    giving: "/giving",
+    celebrations: "/celebrations",
+    notifications: "/notifications",
+    messages: "/messages",
     members: "/members",
     attendance: "/attendance",
     finance: "/finance",

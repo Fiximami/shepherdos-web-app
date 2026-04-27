@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { routes } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils";
 
 type NotificationItem = {
@@ -116,7 +117,7 @@ export function NotificationsMenu({ role }: { role: string }) {
 
           <div className="pt-2 text-right">
             <Link
-              href="/engagement"
+              href={routes.app.notifications}
               className="text-sm font-medium text-primary underline-offset-4 hover:underline"
             >
               View all notifications

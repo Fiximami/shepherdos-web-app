@@ -112,14 +112,14 @@ const actionCatalog: Record<string, QuickAction> = {
     label: "Give / Make Payment",
     icon: HandCoins,
     permission: "payments:create",
-    href: routes.app.finance,
+    href: routes.app.giving,
   },
   submitPrayerRequest: {
     id: "submit-prayer-request",
     label: "Submit Prayer Request",
     icon: HeartHandshake,
     permission: "prayer:create",
-    href: routes.app.engagement,
+    href: routes.app.prayerRequests,
   },
   registerForEvent: {
     id: "register-for-event",
