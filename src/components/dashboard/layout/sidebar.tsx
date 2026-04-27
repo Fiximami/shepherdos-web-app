@@ -1,33 +1,36 @@
 "use client";
 
 import {
-  BarChart3,
+  Bell,
   CalendarDays,
   Church,
+  Gift,
   CircleUserRound,
-  HandHeart,
+  HeartHandshake,
   LayoutGrid,
-  Megaphone,
+  MessageCircleHeart,
+  MessagesSquare,
+  NotebookPen,
   Settings,
-  Users,
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
 
 import { routes } from "@/lib/constants/navigation";
+import { mockUser } from "@/lib/mock-user";
 import { cn } from "@/lib/utils";
 
-const sidebarItems = [
-  { label: "Dashboard", href: routes.app.dashboard, icon: LayoutGrid },
-  { label: "Members", href: routes.app.members, icon: Users },
-  { label: "Attendance", href: routes.app.attendance, icon: HandHeart },
-  { label: "Finance", href: routes.app.finance, icon: Wallet },
-  { label: "Communication", href: routes.app.communication, icon: Megaphone },
+const memberSidebarItems = [
+  { label: "My Dashboard", href: routes.app.dashboard, icon: LayoutGrid },
+  { label: "My Profile", href: routes.app.profile, icon: CircleUserRound },
+  { label: "Community Feed", href: `${routes.app.dashboard}#community-feed`, icon: MessageCircleHeart },
   { label: "Events", href: routes.app.events, icon: CalendarDays },
-  { label: "Analytics", href: routes.app.analytics, icon: BarChart3 },
-  { label: "Engagement", href: routes.app.engagement, icon: Church },
+  { label: "Prayer Requests", href: routes.app.engagement, icon: HeartHandshake },
+  { label: "Giving", href: routes.app.finance, icon: Wallet },
+  { label: "My Celebrations", href: `${routes.app.dashboard}#celebrations`, icon: Gift },
+  { label: "Notifications", href: `${routes.app.dashboard}#notifications`, icon: Bell },
+  { label: "Messages", href: `${routes.app.dashboard}#messages`, icon: MessagesSquare },
   { label: "Settings", href: routes.app.settings, icon: Settings },
-  { label: "Profile", href: routes.app.profile, icon: CircleUserRound },
 ] as const;
 
 type SidebarProps = {
@@ -50,13 +53,17 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
         </div>
         <div>
           <p className="text-sm font-semibold text-white">ShepherdOS</p>
-          <p className="text-xs text-gray-400">Church workspace</p>
+          <p className="text-xs text-gray-400">Member portal</p>
         </div>
       </div>
 
+      <div className="border-b border-white/10 px-4 py-3">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">My Church Space</p>
+      </div>
+
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {sidebarItems.map((item) => {
-          const isActive = currentPath === item.href;
+        {memberSidebarItems.map((item) => {
+          const isActive = !item.href.includes("#") && currentPath === item.href;
           return (
             <Link
               key={item.href}
@@ -85,9 +92,15 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
       </nav>
 
       <div className="border-t border-white/10 px-4 py-3">
-        <p className="text-xs text-gray-400">
-          Serving your church with clarity and care.
-        </p>
+        <div className="flex items-start gap-2.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+          <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <NotebookPen className="size-3.5" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold text-white">Welcome, {mockUser.name.split(" ")[0]}</p>
+            <p className="truncate text-[11px] text-gray-400">{mockUser.churchName} member</p>
+          </div>
+        </div>
       </div>
     </aside>
   );
