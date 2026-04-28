@@ -1,18 +1,15 @@
 "use client";
 
 import {
-  ArrowLeftRight,
-  Banknote,
-  BookMarked,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Building2,
   ClipboardCheck,
   FileBarChart,
   FileStack,
   Landmark,
-  PiggyBank,
-  Receipt,
   Scale,
-  ScrollText,
-  Shield,
+  Smartphone,
   Wallet,
 } from "lucide-react";
 import { useState } from "react";
@@ -22,143 +19,289 @@ import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const summaryCards = [
-  { label: "Total Income", value: "GHS 428,640", note: "Recorded in ledgers this period" },
-  { label: "Total Expenses", value: "GHS 291,180", note: "Posted after categorisation" },
-  { label: "Net Balance", value: "GHS 137,460", note: "Income less expenditure" },
-  { label: "Pending Approvals", value: "7", note: "Awaiting reviewer or final sign-off" },
-  { label: "Budget Health", value: "On track", note: "Ministry lines within tolerance" },
+const overviewCards = [
+  { label: "Total Tithes", value: "GHS 186,400", note: "Posted to general ledger" },
+  { label: "Total Offerings", value: "GHS 52,180", note: "General & special offerings" },
+  { label: "Special Donations", value: "GHS 28,940", note: "Designated gifts" },
+  { label: "Total Expenses", value: "GHS 291,180", note: "Approved & pending posts" },
+  { label: "Net Balance", value: "GHS 137,460", note: "Income less expenditure (period)" },
+  { label: "Pending Approvals", value: "9", note: "Income + expense workflows" },
 ] as const;
 
-const accountingModules = [
-  { title: "Cash & Bank Ledgers", description: "Primary accounts, journals, and posting controls.", icon: Landmark },
-  { title: "Income & Expenditure", description: "Classify inflows and outflows for stewardship reporting.", icon: ArrowLeftRight },
-  { title: "Payment & Receipt Tracking", description: "Evidence trail for every disbursement and deposit.", icon: Receipt },
-  { title: "Bank Reconciliation", description: "Match statements to system balances with variance review.", icon: Scale },
-  { title: "Petty Cash Management", description: "Float limits, retirements, and custodian accountability.", icon: Wallet },
-  { title: "Budget Control", description: "Envelope lines, commitments, and overspend alerts.", icon: PiggyBank },
-  { title: "Audit Trail", description: "Immutable history of who changed what and when.", icon: ScrollText },
-  { title: "Approval Workflow", description: "Tiered authority for sensitive transactions.", icon: Shield },
+const incomeBreakdown = [
+  { category: "Tithe", amount: 186_400, pct: 43 },
+  { category: "Offering", amount: 52_180, pct: 12 },
+  { category: "Special Donation", amount: 28_940, pct: 7 },
+  { category: "Welfare", amount: 14_220, pct: 3 },
+  { category: "Pledge", amount: 41_200, pct: 10 },
+  { category: "Project Support", amount: 68_400, pct: 16 },
+  { category: "Missions / Outreach", amount: 37_300, pct: 9 },
 ] as const;
 
-type TxRow = {
+const recentIncome = [
+  {
+    id: "in-1",
+    date: "2026-04-26",
+    category: "Tithe",
+    amount: "GHS 2,400.00",
+    source: "Member batch · MTN MoMo",
+    reference: "INC-2026-08912",
+    status: "Posted",
+  },
+  {
+    id: "in-2",
+    date: "2026-04-26",
+    category: "Offering",
+    amount: "GHS 18,200.00",
+    source: "Sunday service · consolidated",
+    reference: "INC-2026-08908",
+    status: "Posted",
+  },
+  {
+    id: "in-3",
+    date: "2026-04-25",
+    category: "Special Donation",
+    amount: "GHS 5,000.00",
+    source: "M. Osei · bank transfer (building)",
+    reference: "INC-2026-08894",
+    status: "Posted",
+  },
+  {
+    id: "in-4",
+    date: "2026-04-25",
+    category: "Missions / Outreach",
+    amount: "GHS 1,200.00",
+    source: "Anonymous · card",
+    reference: "INC-2026-08890",
+    status: "Pending L1",
+  },
+] as const;
+
+const expenseCategoriesIntro = [
+  "Operational expenses",
+  "Ministry spending",
+  "Vendor payments",
+  "Utility bills",
+  "Event expenses",
+  "Welfare disbursements",
+] as const;
+
+type ExpApproval = "Approved" | "Pending L1" | "Pending L2" | "Rejected";
+
+type ExpenseRow = {
   id: string;
-  reference: string;
-  type: "Income" | "Expense";
-  category: string;
-  amount: string;
-  method: string;
-  recordedBy: string;
-  approvalStatus: "Approved" | "Pending L2" | "Pending L1" | "Rejected";
   date: string;
+  expenseCategory: string;
+  department: string;
+  amount: string;
+  paidFrom: string;
+  recordedBy: string;
+  approvalStatus: ExpApproval;
 };
 
-const transactions: TxRow[] = [
+const expenses: ExpenseRow[] = [
   {
-    id: "t-1",
-    reference: "TX-2026-04182",
-    type: "Income",
-    category: "Tithes & offerings (general)",
-    amount: "GHS 24,500.00",
-    method: "Bank transfer",
-    recordedBy: "Finance Desk · A. Mensah",
-    approvalStatus: "Approved",
+    id: "ex-1",
     date: "2026-04-26",
-  },
-  {
-    id: "t-2",
-    reference: "TX-2026-04179",
-    type: "Expense",
-    category: "Utilities · electricity",
+    expenseCategory: "Utility bills",
+    department: "Operations",
     amount: "GHS 8,420.00",
-    method: "Direct debit",
-    recordedBy: "Operations · K. Boateng",
+    paidFrom: "Main Bank Account",
+    recordedBy: "K. Boateng",
     approvalStatus: "Pending L2",
-    date: "2026-04-25",
   },
   {
-    id: "t-3",
-    reference: "TX-2026-04171",
-    type: "Expense",
-    category: "Ministry · youth camp deposit",
-    amount: "GHS 15,000.00",
-    method: "Cheque",
-    recordedBy: "Youth Office · D. Osei",
-    approvalStatus: "Pending L1",
+    id: "ex-2",
     date: "2026-04-24",
+    expenseCategory: "Ministry spending",
+    department: "Youth",
+    amount: "GHS 15,000.00",
+    paidFrom: "Main Bank Account",
+    recordedBy: "D. Osei",
+    approvalStatus: "Pending L1",
   },
   {
-    id: "t-4",
-    reference: "TX-2026-04168",
-    type: "Income",
-    category: "Facility hire income",
-    amount: "GHS 3,200.00",
-    method: "Cash (banked)",
-    recordedBy: "Finance Desk · A. Mensah",
+    id: "ex-3",
+    date: "2026-04-22",
+    expenseCategory: "Vendor payments",
+    department: "Admin",
+    amount: "GHS 3,180.00",
+    paidFrom: "Petty Cash",
+    recordedBy: "A. Mensah",
     approvalStatus: "Approved",
-    date: "2026-04-23",
+  },
+  {
+    id: "ex-4",
+    date: "2026-04-20",
+    expenseCategory: "Welfare disbursements",
+    department: "Pastoral care",
+    amount: "GHS 2,000.00",
+    paidFrom: "Welfare Account",
+    recordedBy: "R. Eze",
+    approvalStatus: "Approved",
+  },
+  {
+    id: "ex-5",
+    date: "2026-04-18",
+    expenseCategory: "Event expenses",
+    department: "Hosts",
+    amount: "GHS 4,650.00",
+    paidFrom: "Main Bank Account",
+    recordedBy: "J. Ampofo",
+    approvalStatus: "Approved",
+  },
+  {
+    id: "ex-6",
+    date: "2026-04-15",
+    expenseCategory: "Operational expenses",
+    department: "IT / Comms",
+    amount: "GHS 1,290.00",
+    paidFrom: "Main Bank Account",
+    recordedBy: "A. Mensah",
+    approvalStatus: "Approved",
   },
 ];
 
-const pendingApprovals = [
+type BudgetStatus = "Healthy" | "Warning" | "Exceeded";
+
+type BudgetRow = {
+  id: string;
+  department: string;
+  allocated: string;
+  spent: string;
+  remaining: string;
+  usagePct: number;
+  status: BudgetStatus;
+};
+
+const budgets: BudgetRow[] = [
+  { id: "b-1", department: "Worship", allocated: "GHS 48,000", spent: "GHS 36,200", remaining: "GHS 11,800", usagePct: 75, status: "Healthy" },
+  { id: "b-2", department: "Youth", allocated: "GHS 62,000", spent: "GHS 58,900", remaining: "GHS 3,100", usagePct: 95, status: "Warning" },
+  { id: "b-3", department: "Outreach", allocated: "GHS 35,000", spent: "GHS 38,400", remaining: "GHS (3,400)", usagePct: 110, status: "Exceeded" },
+  { id: "b-4", department: "Admin", allocated: "GHS 28,000", spent: "GHS 19,100", remaining: "GHS 8,900", usagePct: 68, status: "Healthy" },
+];
+
+const accounts = [
   {
-    ref: "TX-2026-04179",
-    summary: "Utilities · electricity — GHS 8,420.00",
-    levels: "L1 approved · Awaiting treasurer (L2)",
+    name: "Main Bank Account",
+    balance: "GHS 184,631.20",
+    lastActivity: "26 Apr 2026 · Transfer out GHS 8,420",
+    recon: "In progress",
+    icon: Landmark,
   },
   {
-    ref: "TX-2026-04171",
-    summary: "Youth camp deposit — GHS 15,000.00",
-    levels: "Awaiting ministry head (L1)",
+    name: "Mobile Money Account",
+    balance: "GHS 42,180.00",
+    lastActivity: "26 Apr 2026 · Tithe batch settlement",
+    recon: "Matched",
+    icon: Smartphone,
   },
   {
-    ref: "TX-2026-04165",
-    summary: "Repairs · roofing partial — GHS 22,100.00",
-    levels: "L1 approved · Awaiting board finance (L3)",
+    name: "Petty Cash",
+    balance: "GHS 1,240.00",
+    lastActivity: "24 Apr 2026 · Vendor reimbursement",
+    recon: "Matched",
+    icon: Wallet,
+  },
+  {
+    name: "Project Account",
+    balance: "GHS 68,900.00",
+    lastActivity: "22 Apr 2026 · Deposit · building fund",
+    recon: "Review",
+    icon: Building2,
+  },
+  {
+    name: "Welfare Account",
+    balance: "GHS 12,400.00",
+    lastActivity: "20 Apr 2026 · Disbursement",
+    recon: "Matched",
+    icon: Wallet,
   },
 ] as const;
 
-const auditEntries = [
+const approvalQueue = [
   {
-    action: "Transaction amended",
-    detail: "TX-2026-04160 · category corrected from Supplies to Repairs",
-    whoRecorded: "J. Ampofo",
-    whoApproved: "— (pending)",
-    when: "2026-04-26 09:14",
+    kind: "Expense" as const,
+    ref: "EX-2026-04179",
+    summary: "Utilities · electricity — GHS 8,420.00",
+    level: "L2",
+    approver: "Treasurer · R. Eze",
   },
   {
-    action: "Approval granted",
-    detail: "TX-2026-04158 · L2 sign-off by treasurer",
-    whoRecorded: "A. Mensah",
-    whoApproved: "R. Eze (Treasurer)",
-    when: "2026-04-25 16:02",
+    kind: "Income" as const,
+    ref: "INC-2026-08890",
+    summary: "Missions / Outreach — GHS 1,200.00",
+    level: "L1",
+    approver: "Finance officer · A. Mensah",
   },
   {
-    action: "New journal line",
-    detail: "Bank charges allocated to Admin · GHS 185.00",
-    whoRecorded: "A. Mensah",
-    whoApproved: "Auto-post (policy)",
-    when: "2026-04-25 08:41",
+    kind: "Expense" as const,
+    ref: "EX-2026-04171",
+    summary: "Youth camp deposit — GHS 15,000.00",
+    level: "L1",
+    approver: "Youth head · S. Okoro",
+  },
+] as const;
+
+const auditRows = [
+  {
+    action: "Amount amended",
+    transaction: "TX-2026-04160",
+    user: "J. Ampofo",
+    timestamp: "2026-04-26 09:14",
+    previousValue: "GHS 3,100.00",
+    newValue: "GHS 3,180.00",
+  },
+  {
+    action: "Approval granted (L2)",
+    transaction: "EX-2026-04158",
+    user: "R. Eze",
+    timestamp: "2026-04-25 16:02",
+    previousValue: "Pending L2",
+    newValue: "Approved",
+  },
+  {
+    action: "Category reassigned",
+    transaction: "TX-2026-04155",
+    user: "A. Mensah",
+    timestamp: "2026-04-25 11:33",
+    previousValue: "Supplies",
+    newValue: "Ministry spending",
   },
 ] as const;
 
 const reportCards = [
-  { title: "Income & Expenditure Statement", blurb: "Period P&L for leadership review." },
-  { title: "Balance Sheet", blurb: "Assets, liabilities, and net position." },
-  { title: "Cash Flow Statement", blurb: "Operating, investing, and financing movement." },
-  { title: "Trial Balance", blurb: "Debit and credit integrity before close." },
-  { title: "Giving Summary", blurb: "Member giving mapped to ledger lines (not a substitute for full accounts)." },
-  { title: "Expense Report", blurb: "Spend by ministry line and vendor." },
+  { title: "Tithe & Offering Report", blurb: "Period summary for worship and stewardship review." },
+  { title: "Income & Expenditure Statement", blurb: "Official P&L line for leadership packs." },
+  { title: "Expense Report", blurb: "Spend by category, ministry, and vendor." },
+  { title: "Budget Performance Report", blurb: "Variance against departmental envelopes." },
+  { title: "Cash Flow Statement", blurb: "Operating movement across accounts." },
+  { title: "Balance Sheet Placeholder", blurb: "Position statement when chart of accounts is complete." },
+  { title: "Audit Trail Report", blurb: "Chronological control log for reviewers." },
+  { title: "Annual Giving Report", blurb: "Mapped member giving for governance (not member receipts)." },
 ] as const;
 
-function statusBadge(status: TxRow["approvalStatus"]) {
-  const styles: Record<TxRow["approvalStatus"], string> = {
+function expStatusBadge(s: ExpApproval) {
+  const map: Record<ExpApproval, string> = {
     Approved: "border-emerald-500/25 bg-emerald-950/40 text-emerald-200/90",
     "Pending L1": "border-amber-500/25 bg-amber-950/35 text-amber-100/90",
     "Pending L2": "border-amber-500/25 bg-amber-950/35 text-amber-100/90",
     Rejected: "border-red-500/20 bg-red-950/35 text-red-200/90",
   };
-  return styles[status];
+  return map[s];
+}
+
+function budgetStatusBadge(s: BudgetStatus) {
+  const map: Record<BudgetStatus, string> = {
+    Healthy: "border-emerald-500/25 bg-emerald-950/35 text-emerald-100",
+    Warning: "border-amber-500/25 bg-amber-950/35 text-amber-50",
+    Exceeded: "border-rose-500/25 bg-rose-950/35 text-rose-100",
+  };
+  return map[s];
+}
+
+function formatGhs(n: number) {
+  return `GHS ${n.toLocaleString("en-GH")}`;
 }
 
 export default function AdminFinancePage() {
@@ -168,33 +311,41 @@ export default function AdminFinancePage() {
     <main className="space-y-5 text-[#e8edf5]">
       <AdminPageHeader
         title="Finance Management"
-        description="Steward church resources with transparency, accuracy, approvals, and audit-ready reports. This workspace is for accounting and controls—not the same as member Giving (contributions), which feeds into ledgers under defined rules."
+        description="Steward church resources with transparency, accuracy, approvals, and audit-ready reporting."
         actions={
-          <>
+          <div className="flex flex-wrap gap-2">
             <Button
               className="h-9 rounded-lg border border-amber-500/25 bg-[#0f1a2e] text-amber-50 shadow-none hover:bg-[#152238]"
-              onClick={() => setFeedback("Record Transaction will open the journal entry flow when connected.")}
+              onClick={() => setFeedback("Record Income will open the income journal when connected.")}
             >
-              <Banknote className="size-4 text-amber-200/90" aria-hidden />
-              Record Transaction
+              <ArrowDownLeft className="size-4 text-amber-200/90" aria-hidden />
+              Record Income
             </Button>
             <Button
               variant="outline"
               className="h-9 rounded-lg border-amber-500/20 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
-              onClick={() => setFeedback("Review Approvals will open the approval queue when connected.")}
+              onClick={() => setFeedback("Record Expense will open the expense entry when connected.")}
             >
-              <ClipboardCheck className="size-4 text-amber-200/80" aria-hidden />
-              Review Approvals
+              <ArrowUpRight className="size-4 text-amber-200/80" aria-hidden />
+              Record Expense
             </Button>
             <Button
               variant="outline"
               className="h-9 rounded-lg border-white/12 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
-              onClick={() => setFeedback("Export Report will offer PDF/CSV packs when connected.")}
+              onClick={() => setFeedback("Reconcile Account will open the reconciliation workspace when connected.")}
+            >
+              <Scale className="size-4 text-slate-300" aria-hidden />
+              Reconcile Account
+            </Button>
+            <Button
+              variant="outline"
+              className="h-9 rounded-lg border-white/12 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
+              onClick={() => setFeedback("Generate Report will offer PDF/CSV packs when connected.")}
             >
               <FileBarChart className="size-4 text-slate-300" aria-hidden />
-              Export Report
+              Generate Report
             </Button>
-          </>
+          </div>
         }
       />
 
@@ -202,66 +353,98 @@ export default function AdminFinancePage() {
         <p className="rounded-lg border border-amber-500/15 bg-[#0c1524] px-3 py-2 text-xs text-slate-300">{feedback}</p>
       ) : null}
 
-      <section className="shepherd-fade-in grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {summaryCards.map((card) => (
+      <section className="shepherd-fade-in grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {overviewCards.map((card) => (
           <AdminCard key={card.label} title={card.label} className="border-amber-500/10 bg-[#0a1426]/90">
-            <p className="text-xl font-semibold tracking-tight text-white">{card.value}</p>
+            <p className="text-lg font-semibold tracking-tight text-white sm:text-xl">{card.value}</p>
             <p className="mt-1 text-xs text-slate-400">{card.note}</p>
           </AdminCard>
         ))}
       </section>
 
       <AdminCard
-        title="Accounting modules"
-        description="Structured areas for serious church finance—ledgers, controls, and evidence—not consumer banking."
-        className="border-amber-500/10 bg-[#080f1c]/95"
+        title="Income tracking"
+        description="Recognised inflows by stewardship category. Member giving posts here under policy—separate from the member Giving screen."
+        className="border-white/10 bg-[#080f1c]/95"
       >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {accountingModules.map((mod) => {
-            const Icon = mod.icon;
-            return (
-              <button
-                key={mod.title}
-                type="button"
-                onClick={() => setFeedback(`${mod.title} module opens when connected.`)}
-                className={cn(
-                  "rounded-xl border border-white/[0.08] bg-[#0c1524] p-3 text-left transition-colors",
-                  "hover:border-amber-500/25 hover:bg-[#101d32]",
-                )}
-              >
-                <div className="flex items-start gap-2.5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/15 bg-[#0a1426]">
-                    <Icon className="size-4 text-amber-200/85" aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white">{mod.title}</p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-slate-400">{mod.description}</p>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,280px)_1fr]">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Category breakdown</p>
+            <ul className="mt-2 space-y-2">
+              {incomeBreakdown.map((row) => (
+                <li key={row.category} className="rounded-lg border border-white/[0.06] bg-[#0c1524] px-3 py-2">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="text-slate-300">{row.category}</span>
+                    <span className="tabular-nums font-medium text-white">{formatGhs(row.amount)}</span>
                   </div>
-                </div>
-              </button>
-            );
-          })}
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-amber-500/40" style={{ width: `${row.pct}%` }} />
+                  </div>
+                  <p className="mt-1 text-[10px] text-slate-600">{row.pct}% of period income (illustrative)</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Recent income transactions</p>
+            <div className="mt-2 overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
+              <table className="w-full min-w-[720px] border-collapse text-sm">
+                <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
+                  <tr>
+                    {["Date", "Category", "Amount", "Source / contribution", "Reference", "Status"].map((h) => (
+                      <th key={h} className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentIncome.map((r) => (
+                    <tr key={r.id} className="border-t border-white/[0.06]">
+                      <td className="px-3 py-2 tabular-nums text-slate-400">
+                        {new Date(r.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      </td>
+                      <td className="px-3 py-2 text-slate-200">{r.category}</td>
+                      <td className="px-3 py-2 font-medium tabular-nums text-white">{r.amount}</td>
+                      <td className="max-w-[220px] px-3 py-2 text-slate-400">{r.source}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-amber-100/80">{r.reference}</td>
+                      <td className="px-3 py-2 text-xs text-slate-400">{r.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </AdminCard>
 
       <AdminCard
-        title="Recent transactions"
-        description="Posted and pending items across the general ledger. Amounts are illustrative."
+        title="Expense management"
+        description="Operational and ministry outflows with clear custody. Categories below group how costs are reviewed."
         className="border-white/10 bg-[#080f1c]/95"
       >
+        <div className="mb-4 flex flex-wrap gap-2">
+          {expenseCategoriesIntro.map((label) => (
+            <span
+              key={label}
+              className="rounded-full border border-white/10 bg-[#0c1524] px-2.5 py-1 text-[11px] text-slate-400"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
         <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
-          <table className="w-full min-w-[1100px] border-collapse text-sm">
-            <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-400">
+          <table className="w-full min-w-[1080px] border-collapse text-sm">
+            <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
               <tr>
                 {[
-                  "Reference",
-                  "Type",
-                  "Category",
+                  "Date",
+                  "Expense Category",
+                  "Department / Ministry",
                   "Amount",
-                  "Method",
+                  "Paid From",
                   "Recorded By",
                   "Approval Status",
-                  "Date",
                   "Actions",
                 ].map((h) => (
                   <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
@@ -271,37 +454,36 @@ export default function AdminFinancePage() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((row) => (
+              {expenses.map((row) => (
                 <tr key={row.id} className="border-t border-white/[0.06]">
-                  <td className="px-3 py-2.5 font-mono text-xs text-amber-100/85">{row.reference}</td>
-                  <td className="px-3 py-2.5 text-slate-200">{row.type}</td>
-                  <td className="px-3 py-2.5 text-slate-300">{row.category}</td>
-                  <td className="px-3 py-2.5 tabular-nums font-medium text-white">{row.amount}</td>
-                  <td className="px-3 py-2.5 text-slate-400">{row.method}</td>
-                  <td className="px-3 py-2.5 text-slate-400">{row.recordedBy}</td>
-                  <td className="px-3 py-2.5">
-                    <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", statusBadge(row.approvalStatus))}>
+                  <td className="px-3 py-2 tabular-nums text-slate-400">
+                    {new Date(row.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  </td>
+                  <td className="px-3 py-2 text-slate-200">{row.expenseCategory}</td>
+                  <td className="px-3 py-2 text-slate-400">{row.department}</td>
+                  <td className="px-3 py-2 font-medium tabular-nums text-white">{row.amount}</td>
+                  <td className="px-3 py-2 text-slate-400">{row.paidFrom}</td>
+                  <td className="px-3 py-2 text-slate-500">{row.recordedBy}</td>
+                  <td className="px-3 py-2">
+                    <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", expStatusBadge(row.approvalStatus))}>
                       {row.approvalStatus}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5 tabular-nums text-slate-400">
-                    {new Date(row.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex flex-wrap gap-1.5">
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap gap-1">
                       <button
                         type="button"
-                        onClick={() => setFeedback(`View ${row.reference}`)}
+                        onClick={() => setFeedback(`View expense ${row.id}`)}
                         className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.08]"
                       >
                         View
                       </button>
                       <button
                         type="button"
-                        onClick={() => setFeedback(`Open journal for ${row.reference}`)}
+                        onClick={() => setFeedback(`Approve flow ${row.id}`)}
                         className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.08]"
                       >
-                        Journal
+                        Route
                       </button>
                     </div>
                   </td>
@@ -312,85 +494,174 @@ export default function AdminFinancePage() {
         </div>
       </AdminCard>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <AdminCard title="Approval workflow" description="Pending items and where they sit in delegated authority." className="border-amber-500/10 bg-[#080f1c]/95">
-          <ul className="space-y-2">
-            {pendingApprovals.map((p) => (
-              <li key={p.ref} className="rounded-lg border border-white/[0.08] bg-[#0c1524] px-3 py-2.5">
-                <p className="font-mono text-xs text-amber-100/85">{p.ref}</p>
-                <p className="mt-0.5 text-sm text-slate-200">{p.summary}</p>
-                <p className="mt-1 text-xs text-slate-400">{p.levels}</p>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-slate-500">
-            Higher-value or restricted categories route through additional levels before posting is final.
-          </p>
-        </AdminCard>
+      <AdminCard title="Budget control" description="Departmental envelopes—early warning before overspend harms ministry plans." className="border-amber-500/10 bg-[#080f1c]/95">
+        <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
+          <table className="w-full min-w-[900px] border-collapse text-sm">
+            <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
+              <tr>
+                {["Department / Ministry", "Budget Allocated", "Amount Spent", "Remaining Balance", "Budget Usage %", "Status"].map((h) => (
+                  <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {budgets.map((b) => (
+                <tr key={b.id} className="border-t border-white/[0.06]">
+                  <td className="px-3 py-2.5 font-medium text-white">{b.department}</td>
+                  <td className="px-3 py-2.5 tabular-nums text-slate-300">{b.allocated}</td>
+                  <td className="px-3 py-2.5 tabular-nums text-slate-300">{b.spent}</td>
+                  <td className="px-3 py-2.5 tabular-nums text-slate-400">{b.remaining}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className={cn(
+                            "h-full rounded-full",
+                            b.status === "Exceeded" ? "bg-rose-500/70" : b.status === "Warning" ? "bg-amber-500/70" : "bg-emerald-500/50",
+                          )}
+                          style={{ width: `${Math.min(b.usagePct, 100)}%` }}
+                        />
+                      </div>
+                      <span className="tabular-nums text-xs text-slate-400">{b.usagePct}%</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", budgetStatusBadge(b.status))}>
+                      {b.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </AdminCard>
 
-        <AdminCard
-          title="Bank reconciliation"
-          description="Statement-to-ledger matching for month-end confidence."
-          className="border-amber-500/10 bg-[#080f1c]/95"
-        >
+      <AdminCard title="Multi-account management" description="Balances are illustrative—live feeds connect when your bank and MoMo integrations are enabled." className="border-white/10 bg-[#080f1c]/95">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {accounts.map((acc) => {
+            const Icon = acc.icon;
+            return (
+              <div key={acc.name} className="rounded-xl border border-white/[0.08] bg-[#0c1524] p-3">
+                <div className="flex items-start gap-2">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/15 bg-[#0a1426]">
+                    <Icon className="size-4 text-amber-200/80" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">{acc.name}</p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums text-white">{acc.balance}</p>
+                    <p className="mt-1 text-xs text-slate-500">Last activity: {acc.lastActivity}</p>
+                    <p className="mt-2 text-[11px] text-slate-600">
+                      Reconciliation: <span className="text-slate-400">{acc.recon}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </AdminCard>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <AdminCard title="Bank / cash reconciliation" description="Month-end discipline: agree the ledger to what the bank or custodian shows." className="border-amber-500/10 bg-[#080f1c]/95">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-white/[0.08] bg-[#0c1524] p-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Bank balance (statement)</p>
-              <p className="mt-1 text-lg font-semibold tabular-nums text-white">GHS 184,920.44</p>
-              <p className="mt-0.5 text-xs text-slate-500">As of 26 Apr 2026 · Main operating account</p>
-            </div>
-            <div className="rounded-lg border border-white/[0.08] bg-[#0c1524] p-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">System balance (ledger)</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">System balance</p>
               <p className="mt-1 text-lg font-semibold tabular-nums text-white">GHS 184,631.20</p>
-              <p className="mt-0.5 text-xs text-slate-500">Cash book after last import</p>
+              <p className="mt-0.5 text-xs text-slate-500">General ledger · main operating</p>
             </div>
             <div className="rounded-lg border border-white/[0.08] bg-[#0c1524] p-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Unmatched entries</p>
-              <p className="mt-1 text-lg font-semibold tabular-nums text-amber-100/90">4</p>
-              <p className="mt-0.5 text-xs text-slate-500">Timing differences and one missing deposit slip</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Bank / cash balance</p>
+              <p className="mt-1 text-lg font-semibold tabular-nums text-white">GHS 184,920.44</p>
+              <p className="mt-0.5 text-xs text-slate-500">Statement as of 26 Apr 2026</p>
             </div>
             <div className="rounded-lg border border-white/[0.08] bg-[#0c1524] p-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Reconciliation status</p>
-              <p className="mt-1 text-lg font-semibold text-emerald-200/90">In progress</p>
-              <p className="mt-0.5 text-xs text-slate-500">Close expected after unmatched items are cleared</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Difference</p>
+              <p className="mt-1 text-lg font-semibold tabular-nums text-amber-100/90">GHS 289.24</p>
+              <p className="mt-0.5 text-xs text-slate-500">Outstanding items not yet cleared</p>
+            </div>
+            <div className="rounded-lg border border-white/[0.08] bg-[#0c1524] p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Unresolved entries</p>
+              <p className="mt-1 text-lg font-semibold text-white">6</p>
+              <p className="mt-0.5 text-xs text-slate-500">Timing, fees, and one uncoded deposit</p>
             </div>
           </div>
         </AdminCard>
+
+        <AdminCard title="Approval workflow" description="Income and expense lines awaiting sign-off—each row shows level and named approver." className="border-amber-500/10 bg-[#080f1c]/95">
+          <ul className="space-y-2">
+            {approvalQueue.map((item) => (
+              <li key={item.ref} className="rounded-lg border border-white/[0.08] bg-[#0c1524] px-3 py-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase",
+                      item.kind === "Income" ? "bg-emerald-950/50 text-emerald-200" : "bg-rose-950/40 text-rose-200",
+                    )}
+                  >
+                    {item.kind}
+                  </span>
+                  <span className="font-mono text-xs text-amber-100/85">{item.ref}</span>
+                </div>
+                <p className="mt-1 text-sm text-slate-200">{item.summary}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Level {item.level} · Assigned: <span className="text-slate-400">{item.approver}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() => setFeedback("Open full approval queue when connected.")}
+            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-amber-200/90 hover:text-amber-100"
+          >
+            <ClipboardCheck className="size-3.5" aria-hidden />
+            Open queue
+          </button>
+        </AdminCard>
       </div>
 
-      <AdminCard title="Audit trail" description="A trustworthy record of custody—who recorded, who approved, what changed, and when." className="border-white/10 bg-[#080f1c]/95">
-        <ul className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.08] bg-[#0c1524]">
-          {auditEntries.map((entry, i) => (
-            <li key={i} className="px-3 py-3 text-sm">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="font-medium text-white">{entry.action}</p>
-                <time className="font-mono text-xs text-slate-500">{entry.when}</time>
-              </div>
-              <p className="mt-1 text-xs text-slate-400">{entry.detail}</p>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                <span>
-                  <span className="text-slate-600">Recorded by</span> {entry.whoRecorded}
-                </span>
-                <span>
-                  <span className="text-slate-600">Approved by</span> {entry.whoApproved}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
+      <AdminCard title="Audit trail" description="Immutable-style log for accountability—who changed what, when, and from which values." className="border-white/10 bg-[#080f1c]/95">
+        <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
+          <table className="w-full min-w-[920px] border-collapse text-sm">
+            <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
+              <tr>
+                {["Action", "Transaction", "User", "Timestamp", "Previous value", "New value"].map((h) => (
+                  <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {auditRows.map((row, i) => (
+                <tr key={i} className="border-t border-white/[0.06]">
+                  <td className="px-3 py-2.5 font-medium text-white">{row.action}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-amber-100/80">{row.transaction}</td>
+                  <td className="px-3 py-2.5 text-slate-400">{row.user}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-slate-500">{row.timestamp}</td>
+                  <td className="px-3 py-2.5 text-slate-500">{row.previousValue}</td>
+                  <td className="px-3 py-2.5 text-slate-300">{row.newValue}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </AdminCard>
 
       <AdminCard
-        title="Reports"
-        description="Governance-ready outputs. Generate packs for trustees and external reviewers when connected."
+        title="Finance reports"
+        description="Governance-ready outputs. PDF export remains a placeholder until generation is connected."
         className="border-amber-500/10 bg-[#080f1c]/95"
       >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {reportCards.map((r) => (
             <button
               key={r.title}
               type="button"
-              onClick={() => setFeedback(`Report: ${r.title} — export when connected.`)}
+              onClick={() => setFeedback(`Generate: ${r.title} (preview).`)}
               className={cn(
                 "flex items-start gap-3 rounded-xl border border-white/[0.08] bg-[#0c1524] p-3 text-left",
                 "hover:border-amber-500/25 hover:bg-[#101d32]",
@@ -409,10 +680,8 @@ export default function AdminFinancePage() {
       </AdminCard>
 
       <p className="rounded-lg border border-white/[0.06] bg-[#0a1426]/80 px-3 py-2 text-xs leading-relaxed text-slate-500">
-        <BookMarked className="mr-1.5 inline size-3.5 text-amber-200/70" aria-hidden />
-        Member <strong className="font-medium text-slate-400">Giving</strong> captures contributions;{" "}
-        <strong className="font-medium text-slate-400">Finance</strong> is where those flows are recognised, controlled,
-        reconciled, and reported under your church&apos;s policies.
+        Authorised roles only—finance officers, church admins, pastors, and delegates you assign. Member-facing{" "}
+        <strong className="font-medium text-slate-400">Giving</strong> never exposes these controls.
       </p>
     </main>
   );
