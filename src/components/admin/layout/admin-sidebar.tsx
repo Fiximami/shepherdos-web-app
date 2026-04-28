@@ -14,6 +14,7 @@ import {
   Receipt,
   ScrollText,
   Settings2,
+  Shield,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const adminNav = [
   { label: "Events Management", href: "/admin/events", icon: CalendarDays },
   { label: "Community Feed Management", href: "/admin/community", icon: MessageSquare },
   { label: "Prayer Requests Management", href: "/admin/prayer-requests", icon: Sparkles },
+  { label: "Counselling", href: "/admin/counselling", icon: Shield },
   { label: "Giving Management", href: "/admin/giving", icon: Receipt },
   { label: "Celebrations Management", href: "/admin/celebrations", icon: Sparkles },
   { label: "Notifications Management", href: "/admin/notifications", icon: BellRing },
