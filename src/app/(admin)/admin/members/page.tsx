@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { Button } from "@/components/ui/button";
+import { hasAnyPermission, hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 type Segment = "All Members" | "First-Timers" | "New Converts" | "Workers" | "Inactive" | "Follow-up Needed";
@@ -42,6 +43,9 @@ const segmentToStatuses: Record<Exclude<Segment, "All Members">, MemberRow["stat
 };
 
 export default function AdminMembersPage() {
+  const canCreateMembers = hasPermission("members:create");
+  const canUpdateMembers = hasPermission("members:update");
+  const canManageMembers = hasAnyPermission(["members:create", "members:update"]);
   const [activeSegment, setActiveSegment] = useState<Segment>("All Members");
   const [search, setSearch] = useState("");
   const [branchFilter, setBranchFilter] = useState("All Branches");
@@ -77,12 +81,33 @@ export default function AdminMembersPage() {
         description="Organize people records with care, clarity, and pastoral visibility."
         actions={
           <>
-            <Button className="h-9 rounded-lg"><Plus className="size-4" aria-hidden />Add Member</Button>
-            <Button variant="outline" className="h-9 rounded-lg"><Upload className="size-4" aria-hidden />Import Members</Button>
-            <Button variant="outline" className="h-9 rounded-lg"><Download className="size-4" aria-hidden />Export Records</Button>
+            {canCreateMembers ? (
+              <Button className="h-9 rounded-lg">
+                <Plus className="size-4" aria-hidden />
+                Add Member
+              </Button>
+            ) : null}
+            {canUpdateMembers ? (
+              <Button variant="outline" className="h-9 rounded-lg">
+                <Upload className="size-4" aria-hidden />
+                Import Members
+              </Button>
+            ) : null}
+            {canManageMembers ? (
+              <Button variant="outline" className="h-9 rounded-lg">
+                <Download className="size-4" aria-hidden />
+                Export Records
+              </Button>
+            ) : null}
           </>
         }
       />
+
+      {!canManageMembers ? (
+        <p className="rounded-lg border border-white/10 bg-[#0c1524] px-3 py-2 text-xs text-slate-300">
+          Member actions are hidden until `members:create` or `members:update` permission is granted.
+        </p>
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[

@@ -8,27 +8,27 @@ type AdminRouteLayoutProps = {
   children: ReactNode;
 };
 
-const leadershipRoles = new Set([
-  "admin",
-  "church_admin",
-  "owner",
-  "church_owner",
-  "pastor",
-  "finance",
-  "finance_officer",
-  "leader",
-  "ministry_leader",
+const leadershipPermissions = new Set([
+  "users:manage",
+  "settings:manage",
+  "finance:approve",
+  "finance:record",
+  "finance:report",
+  "counselling:view",
+  "counselling:manage",
+  "members:create",
+  "members:update",
+  "followups:assign",
+  "announcements:create",
+  "messages:send",
+  "attendance:record",
+  "events:create",
 ]);
 
-const leadershipPermissions = new Set(["users:manage", "settings:manage", "finance:approve", "finance:report"]);
-
 export default function AdminRouteLayout({ children }: AdminRouteLayoutProps) {
-  const canAccessByRole = leadershipRoles.has(mockUser.role);
-  const canAccessByPermission = mockUser.permissions.some((permission) =>
-    leadershipPermissions.has(permission),
-  );
+  const canAccessByPermission = mockUser.permissions.some((permission) => leadershipPermissions.has(permission));
 
-  if (!canAccessByRole && !canAccessByPermission) {
+  if (!canAccessByPermission) {
     redirect("/dashboard");
   }
 

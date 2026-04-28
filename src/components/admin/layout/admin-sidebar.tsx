@@ -24,20 +24,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { mockUser } from "@/lib/mock-user";
+import { hasAnyPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const adminNav = [
   { label: "Overview", href: "/admin", icon: ChartNoAxesCombined },
-  { label: "Members", href: "/admin/members", icon: Users },
+  { label: "Members", href: "/admin/members", icon: Users, requiredAny: ["members:create", "members:update"] },
   { label: "Departments & Groups", href: "/admin/departments", icon: Layers },
   { label: "Attendance", href: "/admin/attendance", icon: BellRing },
-  { label: "Finance", href: "/admin/finance", icon: Receipt },
-  { label: "Communication", href: "/admin/communication", icon: Megaphone },
+  { label: "Finance", href: "/admin/finance", icon: Receipt, requiredAny: ["finance:record", "finance:approve"] },
+  { label: "Communication", href: "/admin/communication", icon: Megaphone, requiredAny: ["announcements:create", "messages:send"] },
   { label: "Events Management", href: "/admin/events", icon: CalendarDays },
   { label: "Community Feed Management", href: "/admin/community", icon: MessageSquare },
   { label: "Prayer Requests Management", href: "/admin/prayer-requests", icon: Sparkles },
-  { label: "Counselling", href: "/admin/counselling", icon: Shield },
-  { label: "Follow-ups", href: "/admin/follow-ups", icon: ClipboardCheck },
+  { label: "Counselling", href: "/admin/counselling", icon: Shield, requiredAny: ["counselling:view", "counselling:manage"] },
+  { label: "Follow-ups", href: "/admin/follow-ups", icon: ClipboardCheck, requiredAny: ["followups:assign"] },
   { label: "Giving Management", href: "/admin/giving", icon: Receipt },
   { label: "Celebrations Management", href: "/admin/celebrations", icon: Sparkles },
   { label: "Notifications Management", href: "/admin/notifications", icon: BellRing },
@@ -49,6 +50,10 @@ const adminNav = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const visibleNav = adminNav.filter((item) => {
+    if (!("requiredAny" in item) || !item.requiredAny) return true;
+    return hasAnyPermission(item.requiredAny);
+  });
 
   return (
     <aside className="flex h-full w-full flex-col rounded-2xl border border-white/10 bg-[#0e2237]/85 shadow-[0_20px_46px_-30px_rgba(0,0,0,0.72)] backdrop-blur-xl">
@@ -85,7 +90,7 @@ export function AdminSidebar() {
         <p className="px-2 pb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
           Operations Navigation
         </p>
-        {adminNav.map((item) => {
+        {visibleNav.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link

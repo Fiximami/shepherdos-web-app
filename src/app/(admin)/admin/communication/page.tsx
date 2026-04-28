@@ -16,6 +16,7 @@ import { useState } from "react";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { Button } from "@/components/ui/button";
+import { hasAnyPermission, hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const summaryCards = [
@@ -154,6 +155,9 @@ function statusPill(status: AnnouncementRow["status"]) {
 }
 
 export default function AdminCommunicationPage() {
+  const canCreateAnnouncements = hasPermission("announcements:create");
+  const canSendMessages = hasPermission("messages:send");
+  const canAccessCommunication = hasAnyPermission(["announcements:create", "messages:send"]);
   const [feedback, setFeedback] = useState("");
   const [activeAudience, setActiveAudience] = useState<string>("All Members");
 
@@ -164,32 +168,44 @@ export default function AdminCommunicationPage() {
         description="Coordinate official church communication across SMS, email, in-app messages, announcements, and community updates. Channels work together—communication is not only announcements."
         actions={
           <>
-            <Button
-              className="h-9 rounded-lg border border-orange-400/25 bg-gradient-to-br from-[#2a1810]/90 to-[#1a1410] text-[#fef7ed] shadow-none hover:from-[#352018] hover:to-[#221a12]"
-              onClick={() => setFeedback("Create Announcement composer opens when connected.")}
-            >
-              <Megaphone className="size-4 text-orange-200/90" aria-hidden />
-              Create Announcement
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg border-stone-500/25 bg-[#1c1612]/80 text-[#f4f0eb] hover:bg-[#261f1a]"
-              onClick={() => setFeedback("Send Broadcast wizard opens when connected.")}
-            >
-              <Radio className="size-4 text-orange-200/80" aria-hidden />
-              Send Broadcast
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg border-stone-500/20 bg-[#1c1612]/80 text-[#f4f0eb] hover:bg-[#261f1a]"
-              onClick={() => setFeedback("Schedule Message opens when connected.")}
-            >
-              <CalendarClock className="size-4 text-stone-300" aria-hidden />
-              Schedule Message
-            </Button>
+            {canCreateAnnouncements ? (
+              <Button
+                className="h-9 rounded-lg border border-orange-400/25 bg-gradient-to-br from-[#2a1810]/90 to-[#1a1410] text-[#fef7ed] shadow-none hover:from-[#352018] hover:to-[#221a12]"
+                onClick={() => setFeedback("Create Announcement composer opens when connected.")}
+              >
+                <Megaphone className="size-4 text-orange-200/90" aria-hidden />
+                Create Announcement
+              </Button>
+            ) : null}
+            {canSendMessages ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-lg border-stone-500/25 bg-[#1c1612]/80 text-[#f4f0eb] hover:bg-[#261f1a]"
+                  onClick={() => setFeedback("Send Broadcast wizard opens when connected.")}
+                >
+                  <Radio className="size-4 text-orange-200/80" aria-hidden />
+                  Send Broadcast
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-lg border-stone-500/20 bg-[#1c1612]/80 text-[#f4f0eb] hover:bg-[#261f1a]"
+                  onClick={() => setFeedback("Schedule Message opens when connected.")}
+                >
+                  <CalendarClock className="size-4 text-stone-300" aria-hidden />
+                  Schedule Message
+                </Button>
+              </>
+            ) : null}
           </>
         }
       />
+
+      {!canAccessCommunication ? (
+        <p className="rounded-lg border border-stone-500/20 bg-[#1c1612]/90 px-3 py-2 text-xs text-stone-300">
+          Communication actions are hidden until `announcements:create` or `messages:send` permission is granted.
+        </p>
+      ) : null}
 
       {feedback ? (
         <p className="rounded-lg border border-stone-500/20 bg-[#1c1612]/90 px-3 py-2 text-xs text-stone-300">{feedback}</p>

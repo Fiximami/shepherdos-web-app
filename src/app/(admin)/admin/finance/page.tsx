@@ -21,6 +21,7 @@ import { useState } from "react";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { Button } from "@/components/ui/button";
+import { hasAnyPermission, hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const overviewCards = [
@@ -428,6 +429,9 @@ function formatGhs(n: number) {
 }
 
 export default function AdminFinancePage() {
+  const canRecordFinance = hasPermission("finance:record");
+  const canApproveFinance = hasPermission("finance:approve");
+  const canAccessFinance = hasAnyPermission(["finance:record", "finance:approve"]);
   const [feedback, setFeedback] = useState("");
 
   return (
@@ -437,40 +441,54 @@ export default function AdminFinancePage() {
         description="Steward church resources with transparency, accuracy, approvals, and audit-ready reporting."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button
-              className="h-9 rounded-lg border border-amber-500/25 bg-[#0f1a2e] text-amber-50 shadow-none hover:bg-[#152238]"
-              onClick={() => setFeedback("Record Income will open the income journal when connected.")}
-            >
-              <ArrowDownLeft className="size-4 text-amber-200/90" aria-hidden />
-              Record Income
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg border-amber-500/20 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
-              onClick={() => setFeedback("Record Expense will open the expense entry when connected.")}
-            >
-              <ArrowUpRight className="size-4 text-amber-200/80" aria-hidden />
-              Record Expense
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg border-white/12 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
-              onClick={() => setFeedback("Reconcile Account will open the reconciliation workspace when connected.")}
-            >
-              <Scale className="size-4 text-slate-300" aria-hidden />
-              Reconcile Account
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg border-white/12 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
-              onClick={() => setFeedback("Generate Report will offer PDF/CSV packs when connected.")}
-            >
-              <FileBarChart className="size-4 text-slate-300" aria-hidden />
-              Generate Report
-            </Button>
+            {canRecordFinance ? (
+              <>
+                <Button
+                  className="h-9 rounded-lg border border-amber-500/25 bg-[#0f1a2e] text-amber-50 shadow-none hover:bg-[#152238]"
+                  onClick={() => setFeedback("Record Income will open the income journal when connected.")}
+                >
+                  <ArrowDownLeft className="size-4 text-amber-200/90" aria-hidden />
+                  Record Income
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-lg border-amber-500/20 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
+                  onClick={() => setFeedback("Record Expense will open the expense entry when connected.")}
+                >
+                  <ArrowUpRight className="size-4 text-amber-200/80" aria-hidden />
+                  Record Expense
+                </Button>
+              </>
+            ) : null}
+            {canApproveFinance ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-lg border-white/12 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
+                  onClick={() => setFeedback("Reconcile Account will open the reconciliation workspace when connected.")}
+                >
+                  <Scale className="size-4 text-slate-300" aria-hidden />
+                  Reconcile Account
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-lg border-white/12 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
+                  onClick={() => setFeedback("Generate Report will offer PDF/CSV packs when connected.")}
+                >
+                  <FileBarChart className="size-4 text-slate-300" aria-hidden />
+                  Generate Report
+                </Button>
+              </>
+            ) : null}
           </div>
         }
       />
+
+      {!canAccessFinance ? (
+        <p className="rounded-lg border border-white/10 bg-[#0c1524] px-3 py-2 text-xs text-slate-300">
+          Finance actions are hidden until `finance:record` or `finance:approve` permission is granted.
+        </p>
+      ) : null}
 
       {feedback ? (
         <p className="rounded-lg border border-amber-500/15 bg-[#0c1524] px-3 py-2 text-xs text-slate-300">{feedback}</p>

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { Button } from "@/components/ui/button";
+import { hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const summaryCards = [
@@ -108,6 +109,7 @@ function statusBadge(status: WorkflowStatus) {
 }
 
 export default function AdminFollowUpsPage() {
+  const canAssignFollowUps = hasPermission("followups:assign");
   const [feedback, setFeedback] = useState("");
 
   return (
@@ -116,6 +118,12 @@ export default function AdminFollowUpsPage() {
         title="Follow-up Management"
         description="Track member care actions triggered by attendance, prayer, counselling, and event signals with pastoral structure."
       />
+
+      {!canAssignFollowUps ? (
+        <p className="rounded-lg border border-white/10 bg-[#0c1524] px-3 py-2 text-xs text-slate-300">
+          Follow-up assignment actions are hidden until `followups:assign` permission is granted.
+        </p>
+      ) : null}
 
       {feedback ? (
         <p className="rounded-lg border border-amber-500/15 bg-[#0c1524] px-3 py-2 text-xs text-slate-300">{feedback}</p>
@@ -169,26 +177,30 @@ export default function AdminFollowUpsPage() {
                     {new Date(row.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                   </td>
                   <td className="px-3 py-2.5">
-                    <div className="flex max-w-[360px] flex-wrap gap-1">
-                      {(
-                        [
-                          ["Assign to leader", `Assign to leader: ${row.member}`],
-                          ["Assign by department", `Assign by department: ${row.member} (${row.department})`],
-                          ["Change status", `Change status: ${row.member}`],
-                          ["Add note", `Add note (placeholder): ${row.member}`],
-                          ["Mark completed", `Mark completed: ${row.member}`],
-                        ] as const
-                      ).map(([label, message]) => (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => setFeedback(message)}
-                          className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-medium text-slate-300 hover:border-white/25 hover:bg-white/[0.08]"
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                    {canAssignFollowUps ? (
+                      <div className="flex max-w-[360px] flex-wrap gap-1">
+                        {(
+                          [
+                            ["Assign to leader", `Assign to leader: ${row.member}`],
+                            ["Assign by department", `Assign by department: ${row.member} (${row.department})`],
+                            ["Change status", `Change status: ${row.member}`],
+                            ["Add note", `Add note (placeholder): ${row.member}`],
+                            ["Mark completed", `Mark completed: ${row.member}`],
+                          ] as const
+                        ).map(([label, message]) => (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => setFeedback(message)}
+                            className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-medium text-slate-300 hover:border-white/25 hover:bg-white/[0.08]"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-500">Restricted</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -237,16 +249,18 @@ export default function AdminFollowUpsPage() {
               <UserCheck className="size-3.5 text-amber-200/70" aria-hidden />
               This is a pastoral care queue, not a ticketing board.
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-1 h-8 border-white/15 bg-transparent text-slate-200 hover:bg-white/[0.06]"
-              onClick={() => setFeedback("Bulk care assignment placeholder opened.")}
-            >
-              <ClipboardCheck className="size-3.5" aria-hidden />
-              Bulk assign follow-ups
-            </Button>
+            {canAssignFollowUps ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1 h-8 border-white/15 bg-transparent text-slate-200 hover:bg-white/[0.06]"
+                onClick={() => setFeedback("Bulk care assignment placeholder opened.")}
+              >
+                <ClipboardCheck className="size-3.5" aria-hidden />
+                Bulk assign follow-ups
+              </Button>
+            ) : null}
           </div>
         </AdminCard>
       </div>

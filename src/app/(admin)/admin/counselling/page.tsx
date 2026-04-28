@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { Button } from "@/components/ui/button";
+import { hasAnyPermission, hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const summaryCards = [
@@ -102,6 +103,9 @@ function statusBadge(s: RequestStatus) {
 }
 
 export default function AdminCounsellingPage() {
+  const canViewCounselling = hasPermission("counselling:view");
+  const canManageCounselling = hasPermission("counselling:manage");
+  const canAccessCounselling = hasAnyPermission(["counselling:view", "counselling:manage"]);
   const [feedback, setFeedback] = useState("");
 
   return (
@@ -116,32 +120,44 @@ export default function AdminCounsellingPage() {
         description="Coordinate pastoral care requests with privacy, wisdom, and structure."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button
-              className="h-9 rounded-lg border border-amber-500/25 bg-[#0f1a2e] text-amber-50 shadow-none hover:bg-[#152238]"
-              onClick={() => setFeedback("Assign Counsellor opens assignment workflow when connected.")}
-            >
-              <Users className="size-4 text-amber-200/85" aria-hidden />
-              Assign Counsellor
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg border-white/15 bg-white/[0.06] text-white"
-              onClick={() => setFeedback("Schedule Session opens booking calendar when connected.")}
-            >
-              <CalendarDays className="size-4 text-slate-200" aria-hidden />
-              Schedule Session
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg border-white/15 bg-white/[0.06] text-white"
-              onClick={() => setFeedback("View Calendar opens counselling calendar when connected.")}
-            >
-              <CalendarDays className="size-4 text-slate-200" aria-hidden />
-              View Calendar
-            </Button>
+            {canManageCounselling ? (
+              <>
+                <Button
+                  className="h-9 rounded-lg border border-amber-500/25 bg-[#0f1a2e] text-amber-50 shadow-none hover:bg-[#152238]"
+                  onClick={() => setFeedback("Assign Counsellor opens assignment workflow when connected.")}
+                >
+                  <Users className="size-4 text-amber-200/85" aria-hidden />
+                  Assign Counsellor
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-lg border-white/15 bg-white/[0.06] text-white"
+                  onClick={() => setFeedback("Schedule Session opens booking calendar when connected.")}
+                >
+                  <CalendarDays className="size-4 text-slate-200" aria-hidden />
+                  Schedule Session
+                </Button>
+              </>
+            ) : null}
+            {canViewCounselling ? (
+              <Button
+                variant="outline"
+                className="h-9 rounded-lg border-white/15 bg-white/[0.06] text-white"
+                onClick={() => setFeedback("View Calendar opens counselling calendar when connected.")}
+              >
+                <CalendarDays className="size-4 text-slate-200" aria-hidden />
+                View Calendar
+              </Button>
+            ) : null}
           </div>
         }
       />
+
+      {!canAccessCounselling ? (
+        <p className="rounded-lg border border-white/10 bg-[#0c1524] px-3 py-2 text-xs text-slate-300">
+          Counselling actions are hidden until `counselling:view` or `counselling:manage` permission is granted.
+        </p>
+      ) : null}
 
       {feedback ? (
         <p className="rounded-lg border border-amber-500/15 bg-[#0c1524] px-3 py-2 text-xs text-slate-300">{feedback}</p>
@@ -192,26 +208,30 @@ export default function AdminCounsellingPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
-                    <div className="flex max-w-[340px] flex-wrap gap-1">
-                      {(
-                        [
-                          "View Request",
-                          "Assign Counsellor",
-                          "Schedule Session",
-                          "Mark Completed",
-                          "Cancel / Reschedule",
-                        ] as const
-                      ).map((action) => (
-                        <button
-                          key={action}
-                          type="button"
-                          onClick={() => setFeedback(`${action}: ${row.member} (${row.type})`)}
-                          className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-medium text-slate-300 hover:border-white/25 hover:bg-white/[0.08]"
-                        >
-                          {action}
-                        </button>
-                      ))}
-                    </div>
+                    {canManageCounselling ? (
+                      <div className="flex max-w-[340px] flex-wrap gap-1">
+                        {(
+                          [
+                            "View Request",
+                            "Assign Counsellor",
+                            "Schedule Session",
+                            "Mark Completed",
+                            "Cancel / Reschedule",
+                          ] as const
+                        ).map((action) => (
+                          <button
+                            key={action}
+                            type="button"
+                            onClick={() => setFeedback(`${action}: ${row.member} (${row.type})`)}
+                            className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-medium text-slate-300 hover:border-white/25 hover:bg-white/[0.08]"
+                          >
+                            {action}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-500">Restricted</span>
+                    )}
                   </td>
                 </tr>
               ))}
