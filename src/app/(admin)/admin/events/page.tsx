@@ -40,6 +40,7 @@ type EventRow = {
   date: string;
   location: string;
   audience: string;
+  department: string;
   registrationCount: number;
   status: EventStatus;
 };
@@ -52,6 +53,7 @@ const allEvents: EventRow[] = [
     date: "2026-04-27",
     location: "Main Auditorium",
     audience: "All branches",
+    department: "Worship & Arts",
     registrationCount: 0,
     status: "Published",
   },
@@ -62,6 +64,7 @@ const allEvents: EventRow[] = [
     date: "2026-07-14",
     location: "Regional retreat centre",
     audience: "Youth + leaders",
+    department: "Youth Ministry",
     registrationCount: 186,
     status: "Published",
   },
@@ -72,6 +75,7 @@ const allEvents: EventRow[] = [
     date: "2026-05-10",
     location: "North Branch hall",
     audience: "Married couples",
+    department: "Pastoral Care",
     registrationCount: 42,
     status: "Published",
   },
@@ -82,6 +86,7 @@ const allEvents: EventRow[] = [
     date: "2026-06-01",
     location: "TBC",
     audience: "Whole church",
+    department: "Prayer Team",
     registrationCount: 0,
     status: "Draft",
   },
@@ -92,6 +97,7 @@ const allEvents: EventRow[] = [
     date: "2026-05-24",
     location: "Car park canopy",
     audience: "Public + members",
+    department: "Welfare Group",
     registrationCount: 0,
     status: "Draft",
   },
@@ -102,6 +108,7 @@ const allEvents: EventRow[] = [
     date: "2026-05-03",
     location: "Fellowship hall",
     audience: "Men 18+",
+    department: "Men's Ministry",
     registrationCount: 0,
     status: "Pending approval",
   },
@@ -112,6 +119,7 @@ const allEvents: EventRow[] = [
     date: "2026-04-13",
     location: "Main + satellite route",
     audience: "All welcome",
+    department: "Ushering Team",
     registrationCount: 520,
     status: "Ended",
   },
@@ -122,6 +130,7 @@ const allEvents: EventRow[] = [
     date: "2026-04-06",
     location: "Room B2",
     audience: "New members",
+    department: "Members Team",
     registrationCount: 38,
     status: "Ended",
   },
@@ -132,6 +141,7 @@ const allEvents: EventRow[] = [
     date: "2026-06-07",
     location: "District 4",
     audience: "Outreach volunteers",
+    department: "Evangelism Team",
     registrationCount: 0,
     status: "Suggestion received",
   },
@@ -142,6 +152,7 @@ const allEvents: EventRow[] = [
     date: "2026-05-17",
     location: "Aburi trail",
     audience: "Singles ministry",
+    department: "Fellowship Groups",
     registrationCount: 0,
     status: "Suggestion received",
   },
@@ -277,7 +288,7 @@ export default function AdminEventsPage() {
           <table className="w-full min-w-[960px] border-collapse text-sm">
             <thead className="border-b border-white/10 bg-white/[0.04] text-gray-400">
               <tr>
-                {["Event Name", "Date", "Location", "Audience", "Registration Count", "Status", "Actions"].map((h) => (
+                {["Event Name", "Date", "Location", "Audience", "Department", "Registration Count", "Status", "Actions"].map((h) => (
                   <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
                     {h}
                   </th>
@@ -287,7 +298,7 @@ export default function AdminEventsPage() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-sm text-gray-500">
+                  <td colSpan={8} className="px-3 py-8 text-center text-sm text-gray-500">
                     No events in this view.
                   </td>
                 </tr>
@@ -310,6 +321,9 @@ export default function AdminEventsPage() {
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-gray-400">{row.audience}</td>
+                    <td className="px-3 py-2.5">
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-xs text-emerald-100/90">{row.department}</span>
+                    </td>
                     <td className="px-3 py-2.5 tabular-nums text-gray-200">{row.registrationCount.toLocaleString()}</td>
                     <td className="px-3 py-2.5">
                       <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", statusClass(row.status))}>
@@ -322,6 +336,7 @@ export default function AdminEventsPage() {
                           [
                             ["View Details", () => setFeedback(`Details: ${row.name}`)],
                             ["Edit", () => setFeedback(`Edit: ${row.name}`)],
+                            ["Assign Department", () => setFeedback(`Assign department: ${row.name}`)],
                             ["Approve", () => setFeedback(`Approve: ${row.name}`)],
                             ["Publish", () => setFeedback(`Publish: ${row.name}`)],
                             ["Cancel", () => setFeedback(`Cancel: ${row.name}`)],

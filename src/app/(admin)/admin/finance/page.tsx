@@ -166,6 +166,14 @@ const expenses: ExpenseRow[] = [
   },
 ];
 
+const departmentSpending = [
+  { department: "Choir", spent: "GHS 14,200", note: "Music equipment and rehearsals" },
+  { department: "Media Team", spent: "GHS 22,100", note: "Streaming, cables, and maintenance" },
+  { department: "Youth Ministry", spent: "GHS 58,900", note: "Camp logistics and transport" },
+  { department: "Sunday School", spent: "GHS 7,200", note: "Learning materials" },
+  { department: "Welfare Group", spent: "GHS 38,200", note: "Care disbursements and emergency support" },
+] as const;
+
 type BudgetStatus = "Healthy" | "Warning" | "Exceeded";
 
 type BudgetRow = {
@@ -535,7 +543,7 @@ export default function AdminFinancePage() {
 
       <AdminCard
         title="Expense management"
-        description="Operational and ministry outflows with clear custody. Categories below group how costs are reviewed."
+        description="Operational and ministry outflows with clear custody. Every expense line links to a department or ministry."
         className="border-white/10 bg-[#080f1c]/95"
       >
         <div className="mb-4 flex flex-wrap gap-2">
@@ -606,6 +614,22 @@ export default function AdminFinancePage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </AdminCard>
+
+      <AdminCard
+        title="Department spending"
+        description="Cross-module stewardship view: how departments are spending in Finance (mock mapping)."
+        className="border-white/10 bg-[#080f1c]/95"
+      >
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {departmentSpending.map((row) => (
+            <div key={row.department} className="rounded-lg border border-white/[0.08] bg-[#0c1524] px-3 py-2.5">
+              <p className="text-sm font-medium text-white">{row.department}</p>
+              <p className="mt-1 text-lg font-semibold tabular-nums text-amber-100/90">{row.spent}</p>
+              <p className="mt-1 text-xs text-slate-500">{row.note}</p>
+            </div>
+          ))}
         </div>
       </AdminCard>
 

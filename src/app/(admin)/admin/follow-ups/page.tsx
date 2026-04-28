@@ -22,6 +22,7 @@ type FollowUpRow = {
   id: string;
   member: string;
   triggerSource: string;
+  department: string;
   priority: Priority;
   assignedTo: string;
   status: WorkflowStatus;
@@ -33,6 +34,7 @@ const queueRows: FollowUpRow[] = [
     id: "f-1",
     member: "Miriam Osei",
     triggerSource: "First-time visitor",
+    department: "Members Team",
     priority: "Normal",
     assignedTo: "Hosts Team · K. Ampofo",
     status: "Assigned",
@@ -42,6 +44,7 @@ const queueRows: FollowUpRow[] = [
     id: "f-2",
     member: "Daniel K.",
     triggerSource: "Member inactive (missed services)",
+    department: "Pastoral Care",
     priority: "Urgent",
     assignedTo: "Pastoral Care · R. Eze",
     status: "In Progress",
@@ -51,6 +54,7 @@ const queueRows: FollowUpRow[] = [
     id: "f-3",
     member: "Anonymous",
     triggerSource: "Prayer request submitted",
+    department: "Prayer Team",
     priority: "Normal",
     assignedTo: "Prayer Follow-up Team",
     status: "Pending",
@@ -60,6 +64,7 @@ const queueRows: FollowUpRow[] = [
     id: "f-4",
     member: "Youth Member",
     triggerSource: "Counselling request submitted",
+    department: "Counselling Desk",
     priority: "Urgent",
     assignedTo: "Counselling Desk · D. Afolabi",
     status: "Assigned",
@@ -69,6 +74,7 @@ const queueRows: FollowUpRow[] = [
     id: "f-5",
     member: "Grace Nwosu",
     triggerSource: "Event no-show",
+    department: "Events Team",
     priority: "Low",
     assignedTo: "Events Team · S. Okoro",
     status: "Completed",
@@ -133,7 +139,7 @@ export default function AdminFollowUpsPage() {
           <table className="w-full min-w-[1080px] border-collapse text-sm">
             <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
               <tr>
-                {["Member", "Trigger Source", "Priority", "Assigned To", "Status", "Due Date", "Actions"].map((h) => (
+                {["Member", "Trigger Source", "Department", "Priority", "Assigned To", "Status", "Due Date", "Actions"].map((h) => (
                   <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
                     {h}
                   </th>
@@ -145,6 +151,9 @@ export default function AdminFollowUpsPage() {
                 <tr key={row.id} className="border-t border-white/[0.06]">
                   <td className="px-3 py-2.5 font-medium text-white">{row.member}</td>
                   <td className="px-3 py-2.5 text-slate-300">{row.triggerSource}</td>
+                  <td className="px-3 py-2.5">
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-xs text-amber-100/90">{row.department}</span>
+                  </td>
                   <td className="px-3 py-2.5">
                     <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", priorityBadge(row.priority))}>
                       {row.priority}
@@ -164,6 +173,7 @@ export default function AdminFollowUpsPage() {
                       {(
                         [
                           ["Assign to leader", `Assign to leader: ${row.member}`],
+                          ["Assign by department", `Assign by department: ${row.member} (${row.department})`],
                           ["Change status", `Change status: ${row.member}`],
                           ["Add note", `Add note (placeholder): ${row.member}`],
                           ["Mark completed", `Mark completed: ${row.member}`],

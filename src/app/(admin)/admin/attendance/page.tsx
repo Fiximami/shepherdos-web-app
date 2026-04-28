@@ -21,6 +21,7 @@ type SessionRow = {
   service: string;
   date: string;
   branch: string;
+  department: string;
   totalPresent: number;
   firstTimers: number;
   recordedBy: string;
@@ -32,6 +33,7 @@ const sessions: SessionRow[] = [
     service: "Sunday Celebration",
     date: "2026-04-27",
     branch: "Main Campus",
+    department: "Choir",
     totalPresent: 412,
     firstTimers: 6,
     recordedBy: "Ps. Emmanuel Boateng",
@@ -41,6 +43,7 @@ const sessions: SessionRow[] = [
     service: "Midweek Prayer",
     date: "2026-04-24",
     branch: "North Branch",
+    department: "Prayer Team",
     totalPresent: 118,
     firstTimers: 2,
     recordedBy: "Deborah Afolabi",
@@ -50,6 +53,7 @@ const sessions: SessionRow[] = [
     service: "Youth Gathering",
     date: "2026-04-20",
     branch: "Main Campus",
+    department: "Youth Ministry",
     totalPresent: 94,
     firstTimers: 5,
     recordedBy: "Samuel Okoro",
@@ -59,6 +63,7 @@ const sessions: SessionRow[] = [
     service: "Sunday Celebration",
     date: "2026-04-20",
     branch: "South Branch",
+    department: "Ushering Team",
     totalPresent: 267,
     firstTimers: 4,
     recordedBy: "Ruth Eze",
@@ -82,6 +87,18 @@ const absentees = [
 
 export default function AdminAttendancePage() {
   const [feedback, setFeedback] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("All Departments");
+
+  const sessionRows =
+    departmentFilter === "All Departments" ? sessions : sessions.filter((row) => row.department === departmentFilter);
+
+  const deptAttendance = [
+    { dept: "Choir", present: 146 },
+    { dept: "Media Team", present: 62 },
+    { dept: "Youth Ministry", present: 188 },
+    { dept: "Sunday School", present: 74 },
+    { dept: "Ushering Team", present: 91 },
+  ] as const;
 
   return (
     <main className="space-y-5">
@@ -123,11 +140,23 @@ export default function AdminAttendancePage() {
         title="Attendance sessions"
         description="Official counts recorded by approved leaders. Members do not self-mark attendance here."
       >
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-gray-400">Department filter:</span>
+          <select
+            value={departmentFilter}
+            onChange={(event) => setDepartmentFilter(event.target.value)}
+            className="h-8 rounded-lg border border-white/10 bg-[#11263b] px-2.5 text-xs text-white outline-none"
+          >
+            {["All Departments", "Choir", "Media Team", "Youth Ministry", "Prayer Team", "Ushering Team", "Sunday School"].map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+        </div>
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full min-w-[920px] border-collapse text-sm">
             <thead className="bg-white/[0.06] text-gray-300">
               <tr>
-                {["Service/Event", "Date", "Branch", "Total Present", "First-Timers", "Recorded By", "Actions"].map(
+                {["Service/Event", "Date", "Branch", "Department", "Total Present", "First-Timers", "Recorded By", "Actions"].map(
                   (h) => (
                     <th key={h} className="px-3 py-2 text-left font-medium">
                       {h}
@@ -137,7 +166,7 @@ export default function AdminAttendancePage() {
               </tr>
             </thead>
             <tbody>
-              {sessions.map((row) => (
+              {sessionRows.map((row) => (
                 <tr key={row.id} className="border-t border-white/10 bg-white/[0.03]">
                   <td className="px-3 py-2 font-medium text-white">{row.service}</td>
                   <td className="px-3 py-2 text-gray-300">
@@ -149,6 +178,9 @@ export default function AdminAttendancePage() {
                     })}
                   </td>
                   <td className="px-3 py-2 text-gray-300">{row.branch}</td>
+                  <td className="px-3 py-2">
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-xs text-amber-100/90">{row.department}</span>
+                  </td>
                   <td className="px-3 py-2 tabular-nums text-gray-200">{row.totalPresent}</td>
                   <td className="px-3 py-2 tabular-nums text-gray-200">{row.firstTimers}</td>
                   <td className="px-3 py-2 text-gray-300">{row.recordedBy}</td>
@@ -174,6 +206,18 @@ export default function AdminAttendancePage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </AdminCard>
+
+      <AdminCard title="Attendance by department" description="Quick view of participation signals across ministry departments (mock).">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {deptAttendance.map((row) => (
+            <div key={row.dept} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5">
+              <p className="text-sm font-medium text-white">{row.dept}</p>
+              <p className="mt-1 text-xs text-gray-400">Attendance this week</p>
+              <p className="mt-1 text-lg font-semibold tabular-nums text-amber-100/90">{row.present}</p>
+            </div>
+          ))}
         </div>
       </AdminCard>
 

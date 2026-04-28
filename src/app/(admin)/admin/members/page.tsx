@@ -17,17 +17,18 @@ type MemberRow = {
   phone: string;
   branch: string;
   ministry: string;
+  department: string;
   status: "Active" | "First-Timer" | "New Convert" | "Worker" | "Inactive" | "Follow-up Needed";
   lastSeen: string;
 };
 
 const members: MemberRow[] = [
-  { id: "m-1", name: "Ruth Eze", memberId: "SHP-1044", phone: "+233 24 551 1022", branch: "Main Campus", ministry: "Hospitality", status: "Worker", lastSeen: "Sun, Apr 27" },
-  { id: "m-2", name: "Samuel Okoro", memberId: "SHP-1172", phone: "+233 20 831 0031", branch: "North Branch", ministry: "Youth Group", status: "Active", lastSeen: "Sun, Apr 27" },
-  { id: "m-3", name: "Miriam Osei", memberId: "SHP-1205", phone: "+233 24 190 5532", branch: "Main Campus", ministry: "Choir", status: "Follow-up Needed", lastSeen: "3 weeks ago" },
-  { id: "m-4", name: "Daniel Kwarteng", memberId: "SHP-1228", phone: "+233 54 665 2211", branch: "South Branch", ministry: "None", status: "First-Timer", lastSeen: "Sun, Apr 27" },
-  { id: "m-5", name: "Deborah Afolabi", memberId: "SHP-1253", phone: "+233 50 116 9402", branch: "Main Campus", ministry: "Prayer Team", status: "New Convert", lastSeen: "Wed, Apr 24" },
-  { id: "m-6", name: "Moses Bassey", memberId: "SHP-1021", phone: "+233 24 210 4450", branch: "East Branch", ministry: "Ushering", status: "Inactive", lastSeen: "4 weeks ago" },
+  { id: "m-1", name: "Ruth Eze", memberId: "SHP-1044", phone: "+233 24 551 1022", branch: "Main Campus", ministry: "Hospitality", department: "Ushering Team", status: "Worker", lastSeen: "Sun, Apr 27" },
+  { id: "m-2", name: "Samuel Okoro", memberId: "SHP-1172", phone: "+233 20 831 0031", branch: "North Branch", ministry: "Youth Group", department: "Youth Ministry", status: "Active", lastSeen: "Sun, Apr 27" },
+  { id: "m-3", name: "Miriam Osei", memberId: "SHP-1205", phone: "+233 24 190 5532", branch: "Main Campus", ministry: "Choir", department: "Choir", status: "Follow-up Needed", lastSeen: "3 weeks ago" },
+  { id: "m-4", name: "Daniel Kwarteng", memberId: "SHP-1228", phone: "+233 54 665 2211", branch: "South Branch", ministry: "None", department: "Unassigned", status: "First-Timer", lastSeen: "Sun, Apr 27" },
+  { id: "m-5", name: "Deborah Afolabi", memberId: "SHP-1253", phone: "+233 50 116 9402", branch: "Main Campus", ministry: "Prayer Team", department: "Prayer Team", status: "New Convert", lastSeen: "Wed, Apr 24" },
+  { id: "m-6", name: "Moses Bassey", memberId: "SHP-1021", phone: "+233 24 210 4450", branch: "East Branch", ministry: "Ushering", department: "Ushering Team", status: "Inactive", lastSeen: "4 weeks ago" },
 ];
 
 const segments: Segment[] = ["All Members", "First-Timers", "New Converts", "Workers", "Inactive", "Follow-up Needed"];
@@ -45,6 +46,7 @@ export default function AdminMembersPage() {
   const [search, setSearch] = useState("");
   const [branchFilter, setBranchFilter] = useState("All Branches");
   const [ministryFilter, setMinistryFilter] = useState("All Ministries");
+  const [departmentFilter, setDepartmentFilter] = useState("All Departments");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [feedback, setFeedback] = useState("");
 
@@ -57,6 +59,7 @@ export default function AdminMembersPage() {
       }
       if (branchFilter !== "All Branches" && member.branch !== branchFilter) return false;
       if (ministryFilter !== "All Ministries" && member.ministry !== ministryFilter) return false;
+      if (departmentFilter !== "All Departments" && member.department !== departmentFilter) return false;
       if (statusFilter !== "All Statuses" && member.status !== statusFilter) return false;
       if (!q) return true;
       return (
@@ -65,7 +68,7 @@ export default function AdminMembersPage() {
         member.phone.toLowerCase().includes(q)
       );
     });
-  }, [activeSegment, branchFilter, ministryFilter, search, statusFilter]);
+  }, [activeSegment, branchFilter, departmentFilter, ministryFilter, search, statusFilter]);
 
   return (
     <main className="space-y-5">
@@ -116,7 +119,7 @@ export default function AdminMembersPage() {
       </AdminCard>
 
       <AdminCard title="Toolbar" description="Search and filter member records with clarity.">
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -129,6 +132,9 @@ export default function AdminMembersPage() {
           <select value={ministryFilter} onChange={(event) => setMinistryFilter(event.target.value)} className="h-10 rounded-lg border border-white/10 bg-[#11263b] px-3 text-sm text-white outline-none">
             {["All Ministries", "Hospitality", "Youth Group", "Choir", "Prayer Team", "Ushering", "None"].map((item) => <option key={item}>{item}</option>)}
           </select>
+          <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="h-10 rounded-lg border border-white/10 bg-[#11263b] px-3 text-sm text-white outline-none">
+            {["All Departments", "Choir", "Media Team", "Youth Ministry", "Prayer Team", "Ushering Team", "Unassigned"].map((item) => <option key={item}>{item}</option>)}
+          </select>
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-lg border border-white/10 bg-[#11263b] px-3 text-sm text-white outline-none">
             {["All Statuses", "Active", "First-Timer", "New Convert", "Worker", "Inactive", "Follow-up Needed"].map((item) => <option key={item}>{item}</option>)}
           </select>
@@ -140,7 +146,7 @@ export default function AdminMembersPage() {
           <table className="w-full min-w-[980px] border-collapse text-sm">
             <thead className="bg-white/[0.06] text-gray-300">
               <tr>
-                {["Name", "Member ID", "Phone", "Branch", "Group/Ministry", "Status", "Last Seen", "Actions"].map((header) => (
+                {["Name", "Member ID", "Phone", "Branch", "Group/Ministry", "Department", "Status", "Last Seen", "Actions"].map((header) => (
                   <th key={header} className="px-3 py-2 text-left font-medium">{header}</th>
                 ))}
               </tr>
@@ -153,6 +159,9 @@ export default function AdminMembersPage() {
                   <td className="px-3 py-2 text-gray-300">{row.phone}</td>
                   <td className="px-3 py-2 text-gray-300">{row.branch}</td>
                   <td className="px-3 py-2 text-gray-300">{row.ministry}</td>
+                  <td className="px-3 py-2">
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-xs text-amber-100/90">{row.department}</span>
+                  </td>
                   <td className="px-3 py-2">
                     <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-xs text-gray-200">{row.status}</span>
                   </td>

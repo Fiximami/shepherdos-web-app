@@ -121,6 +121,7 @@ const scheduledMessages = [
 
 const audienceFilters = [
   "All Members",
+  "Department",
   "Branch",
   "Ministry/Group",
   "Workers",
@@ -134,6 +135,13 @@ const deliveryLogSummary = [
   { status: "Delivered" as const, count: 11820, note: "Confirmed delivery where supported" },
   { status: "Failed" as const, count: 94, note: "Invalid numbers, bounces, or blocks" },
   { status: "Scheduled" as const, count: 16, note: "Waiting on send window" },
+] as const;
+
+const departmentAudiences = [
+  { name: "Choir", members: 34, channel: "In-app + WhatsApp" },
+  { name: "Media Team", members: 19, channel: "In-app + Email" },
+  { name: "Youth Ministry", members: 118, channel: "SMS + In-app" },
+  { name: "Ushering Team", members: 42, channel: "SMS" },
 ] as const;
 
 function statusPill(status: AnnouncementRow["status"]) {
@@ -363,6 +371,27 @@ export default function AdminCommunicationPage() {
           </p>
         </AdminCard>
       </div>
+
+      <AdminCard
+        title="Department audiences"
+        description="Target communication by department without sending noise to the full church body."
+        className="border-stone-500/15 bg-[#1a1511]/95"
+      >
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {departmentAudiences.map((row) => (
+            <button
+              key={row.name}
+              type="button"
+              onClick={() => setFeedback(`Target department audience: ${row.name}`)}
+              className="rounded-lg border border-stone-500/15 bg-[#14100d]/90 px-3 py-2.5 text-left transition-colors hover:border-orange-400/25"
+            >
+              <p className="text-sm font-medium text-[#f4f0eb]">{row.name}</p>
+              <p className="mt-1 text-xs text-stone-500">{row.members} members</p>
+              <p className="mt-1 text-[11px] text-orange-200/80">{row.channel}</p>
+            </button>
+          ))}
+        </div>
+      </AdminCard>
 
       <AdminCard
         title="Communication logs"
