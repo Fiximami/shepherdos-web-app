@@ -8,6 +8,7 @@ export const routes = {
     dashboard: "/dashboard",
     feed: "/feed",
     prayerRequests: "/prayer-requests",
+    counselling: "/counselling",
     giving: "/giving",
     celebrations: "/celebrations",
     notifications: "/notifications",

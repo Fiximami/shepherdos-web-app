@@ -3,6 +3,7 @@
 import {
   Bell,
   CalendarDays,
+  Compass,
   Church,
   Gift,
   CircleUserRound,
@@ -26,6 +27,7 @@ const memberSidebarItems = [
   { label: "Community Feed", href: routes.app.feed, icon: MessageCircleHeart },
   { label: "Events", href: routes.app.events, icon: CalendarDays },
   { label: "Prayer Requests", href: routes.app.prayerRequests, icon: HeartHandshake },
+  { label: "Counselling", href: routes.app.counselling, icon: Compass },
   { label: "Giving", href: routes.app.giving, icon: Wallet },
   { label: "My Celebrations", href: routes.app.celebrations, icon: Gift },
   { label: "Notifications", href: routes.app.notifications, icon: Bell },
