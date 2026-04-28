@@ -1,13 +1,17 @@
-import type { Metadata } from "next";
+"use client";
+
 import {
+  AlertTriangle,
   ArrowLeft,
   BarChart3,
   CalendarDays,
   ChartNoAxesCombined,
   ChevronRight,
   Clock3,
+  CircleAlert,
   HandCoins,
   HeartHandshake,
+  Info,
   Megaphone,
   Receipt,
   ScrollText,
@@ -15,15 +19,11 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-export const metadata: Metadata = {
-  title: "Leadership Console · ShepherdOS",
-  description:
-    "Controlled leadership workspace for members, attendance, finance, communication, and reports.",
-};
+import { cn } from "@/lib/utils";
 
 const leadershipMetrics = [
   { label: "Active Members", value: "1,248", note: "Up 4.2% from last month", icon: Users },
@@ -101,7 +101,62 @@ const moduleCards = [
   },
 ] as const;
 
+type InsightSeverity = "info" | "warning" | "urgent";
+type InsightFilter = "all" | "urgent" | "needs-action";
+
+const shepherdInsights = [
+  {
+    id: "si-1",
+    category: "Attendance",
+    message: "15 members missed 3 consecutive services",
+    severity: "warning" as InsightSeverity,
+    needsAction: true,
+    icon: ChartNoAxesCombined,
+  },
+  {
+    id: "si-2",
+    category: "Giving",
+    message: "Giving dropped 12% this week",
+    severity: "warning" as InsightSeverity,
+    needsAction: true,
+    icon: HandCoins,
+  },
+  {
+    id: "si-3",
+    category: "Care",
+    message: "3 counselling requests unassigned",
+    severity: "urgent" as InsightSeverity,
+    needsAction: true,
+    icon: HeartHandshake,
+  },
+  {
+    id: "si-4",
+    category: "Engagement",
+    message: "5 prayer requests awaiting response",
+    severity: "info" as InsightSeverity,
+    needsAction: true,
+    icon: Info,
+  },
+] as const;
+
+function insightSeverityStyle(severity: InsightSeverity) {
+  const map: Record<InsightSeverity, string> = {
+    info: "border-sky-500/20 bg-sky-950/20 text-sky-100",
+    warning: "border-amber-500/20 bg-amber-950/25 text-amber-100",
+    urgent: "border-rose-500/20 bg-rose-950/30 text-rose-100",
+  };
+  return map[severity];
+}
+
 export default function AdminPage() {
+  const [insightFilter, setInsightFilter] = useState<InsightFilter>("all");
+
+  const visibleInsights = useMemo(() => {
+    if (insightFilter === "urgent") return shepherdInsights.filter((i) => i.severity === "urgent");
+    if (insightFilter === "needs-action") return shepherdInsights.filter((i) => i.needsAction);
+    return shepherdInsights;
+  }, [insightFilter]);
+
   return (
     <main className="space-y-5">
       <section className="shepherd-fade-in relative overflow-hidden rounded-2xl border border-white/10 bg-[#10263a]/75 p-5 shadow-[0_24px_52px_-40px_rgba(0,0,0,0.78)] backdrop-blur-xl sm:p-6">
@@ -185,6 +240,75 @@ export default function AdminPage() {
             <p className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5">
               Use modules below as focused lanes for members, ministry operations, and accountability reporting.
             </p>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="shepherd-fade-in">
+        <Card className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">
+          <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-base text-white">Shepherd Insights</CardTitle>
+              <CardDescription>Calm intelligence highlights so leaders can respond early and wisely.</CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  ["all", "All"],
+                  ["urgent", "Urgent"],
+                  ["needs-action", "Needs Action"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setInsightFilter(id)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    insightFilter === id
+                      ? "border-amber-300/35 bg-amber-300/10 text-amber-50 shadow-[0_0_16px_-10px_rgba(251,191,36,0.7)]"
+                      : "border-white/15 bg-white/[0.03] text-gray-300 hover:bg-white/[0.08] hover:text-white",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+              {visibleInsights.map((insight) => (
+                <div
+                  key={insight.id}
+                  className={cn(
+                    "rounded-xl border px-3 py-3 transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-[1px]",
+                    insightSeverityStyle(insight.severity),
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-white">
+                      <insight.icon className="size-3.5" aria-hidden />
+                      {insight.category}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wide text-gray-300/90">{insight.severity}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-white">{insight.message}</p>
+                  <button
+                    type="button"
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-amber-100/90 hover:text-amber-100"
+                  >
+                    View Details
+                    {insight.severity === "urgent" ? (
+                      <AlertTriangle className="size-3.5 text-rose-200/90" aria-hidden />
+                    ) : insight.severity === "warning" ? (
+                      <CircleAlert className="size-3.5 text-amber-200/90" aria-hidden />
+                    ) : (
+                      <Info className="size-3.5 text-sky-200/90" aria-hidden />
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </section>
