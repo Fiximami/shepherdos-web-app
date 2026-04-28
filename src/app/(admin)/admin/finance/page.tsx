@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
   Building2,
@@ -8,10 +9,13 @@ import {
   FileBarChart,
   FileStack,
   Landmark,
+  PiggyBank,
   Scale,
   Smartphone,
+  TrendingUp,
   Wallet,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
@@ -180,6 +184,117 @@ const budgets: BudgetRow[] = [
   { id: "b-3", department: "Outreach", allocated: "GHS 35,000", spent: "GHS 38,400", remaining: "GHS (3,400)", usagePct: 110, status: "Exceeded" },
   { id: "b-4", department: "Admin", allocated: "GHS 28,000", spent: "GHS 19,100", remaining: "GHS 8,900", usagePct: 68, status: "Healthy" },
 ];
+
+type DeptGroupBudgetRow = {
+  id: string;
+  name: string;
+  allocated: string;
+  spent: string;
+  remaining: string;
+  usagePct: number;
+  status: BudgetStatus;
+  assignee: string;
+};
+
+const departmentGroupBudgets: DeptGroupBudgetRow[] = [
+  {
+    id: "db-choir",
+    name: "Choir",
+    allocated: "GHS 18,000",
+    spent: "GHS 14,200",
+    remaining: "GHS 3,800",
+    usagePct: 79,
+    status: "Healthy",
+    assignee: "Finance · A. Mensah · Leader · G. Nwosu",
+  },
+  {
+    id: "db-media",
+    name: "Media Team",
+    allocated: "GHS 24,000",
+    spent: "GHS 22,100",
+    remaining: "GHS 1,900",
+    usagePct: 92,
+    status: "Warning",
+    assignee: "Finance · A. Mensah · Tech lead · D. Kwarteng",
+  },
+  {
+    id: "db-youth",
+    name: "Youth Ministry",
+    allocated: "GHS 62,000",
+    spent: "GHS 58,900",
+    remaining: "GHS 3,100",
+    usagePct: 95,
+    status: "Warning",
+    assignee: "Finance · R. Eze · Pastor youth · S. Okoro",
+  },
+  {
+    id: "db-ss",
+    name: "Sunday School",
+    allocated: "GHS 10,000",
+    spent: "GHS 7,200",
+    remaining: "GHS 2,800",
+    usagePct: 72,
+    status: "Healthy",
+    assignee: "Finance · A. Mensah · Coordinator · K. Adjei",
+  },
+  {
+    id: "db-welfare",
+    name: "Welfare Group",
+    allocated: "GHS 35,000",
+    spent: "GHS 38,200",
+    remaining: "GHS (3,200)",
+    usagePct: 109,
+    status: "Exceeded",
+    assignee: "Finance · R. Eze · Lead deacon · J. Ampofo",
+  },
+  {
+    id: "db-eva",
+    name: "Evangelism Team",
+    allocated: "GHS 18,000",
+    spent: "GHS 8,400",
+    remaining: "GHS 9,600",
+    usagePct: 47,
+    status: "Healthy",
+    assignee: "Finance · A. Mensah · Team lead · P. Osei",
+  },
+  {
+    id: "db-ush",
+    name: "Ushering Team",
+    allocated: "GHS 12,000",
+    spent: "GHS 11,100",
+    remaining: "GHS 900",
+    usagePct: 93,
+    status: "Warning",
+    assignee: "Finance · A. Mensah · Head usher · J. Ampofo",
+  },
+];
+
+const departmentBudgetInsights = [
+  {
+    title: "Highest spending (period)",
+    body: "Youth Ministry leads spend at GHS 58,900—mostly camp deposits and transport.",
+    icon: TrendingUp,
+    accent: "border-amber-500/20 bg-amber-950/15",
+  },
+  {
+    title: "Departments near limit",
+    body: "Media (92%), Ushering (93%), and Youth (95%) are within policy watch—confirm upcoming events before new commitments.",
+    icon: AlertTriangle,
+    accent: "border-amber-500/20 bg-amber-950/12",
+  },
+  {
+    title: "Unused budget capacity",
+    body: "Evangelism Team retains GHS 9,600—consider aligning outreach dates or rolling a modest increase next quarter.",
+    icon: PiggyBank,
+    accent: "border-emerald-500/15 bg-emerald-950/10",
+  },
+  {
+    title: "Over-budget alert",
+    body: "Welfare Group is above envelope by GHS 3,200—pastoral and finance review recommended before further disbursements.",
+    icon: AlertTriangle,
+    accent: "border-rose-500/20 bg-rose-950/15",
+  },
+] as const;
 
 const accounts = [
   {
@@ -531,6 +646,109 @@ export default function AdminFinancePage() {
                     <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", budgetStatusBadge(b.status))}>
                       {b.status}
                     </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </AdminCard>
+
+      <AdminCard title="Department budget control" className="border-amber-500/15 bg-[#080f1c]/95">
+        <p className="text-xs leading-relaxed text-slate-400">
+          Budget envelopes tied to{" "}
+          <Link href="/admin/departments" className="font-medium text-amber-200/90 underline-offset-2 hover:underline">
+            Departments &amp; Groups
+          </Link>
+          —so finance officers and ministry leaders share one stewardship picture.
+        </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {departmentBudgetInsights.map((ins) => {
+            const Icon = ins.icon;
+            return (
+              <div key={ins.title} className={cn("rounded-xl border px-3 py-3", ins.accent)}>
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <Icon className="size-4 shrink-0 text-amber-200/75" aria-hidden />
+                  {ins.title}
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-slate-400">{ins.body}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
+          <table className="w-full min-w-[1180px] border-collapse text-sm">
+            <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
+              <tr>
+                {[
+                  "Department / group",
+                  "Allocated",
+                  "Spent",
+                  "Remaining",
+                  "Usage",
+                  "Status",
+                  "Finance / leadership",
+                  "Actions",
+                ].map((h) => (
+                  <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {departmentGroupBudgets.map((row) => (
+                <tr key={row.id} className="border-t border-white/[0.06]">
+                  <td className="px-3 py-2.5 font-medium text-white">{row.name}</td>
+                  <td className="px-3 py-2.5 tabular-nums text-slate-300">{row.allocated}</td>
+                  <td className="px-3 py-2.5 tabular-nums text-slate-300">{row.spent}</td>
+                  <td className="px-3 py-2.5 tabular-nums text-slate-400">{row.remaining}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex min-w-[140px] items-center gap-2">
+                      <div className="h-2 flex-1 max-w-[120px] overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-[width]",
+                            row.status === "Exceeded"
+                              ? "bg-rose-500/65"
+                              : row.status === "Warning"
+                                ? "bg-amber-500/60"
+                                : "bg-emerald-500/45",
+                          )}
+                          style={{ width: `${Math.min(row.usagePct, 100)}%` }}
+                        />
+                      </div>
+                      <span className="shrink-0 tabular-nums text-xs text-slate-400">{row.usagePct}%</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", budgetStatusBadge(row.status))}>
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="max-w-[260px] px-3 py-2.5 text-xs text-slate-500">{row.assignee}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex max-w-[280px] flex-wrap gap-1">
+                      {(
+                        [
+                          ["View Budget", `View budget · ${row.name}`],
+                          ["Adjust Budget", `Adjust budget · ${row.name}`],
+                          ["View Expenses", `View expenses · ${row.name}`],
+                          ["Export Budget Report", `Export budget report · ${row.name}`],
+                        ] as const
+                      ).map(([label, msg]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => setFeedback(`${msg} (preview).`)}
+                          className="rounded-md border border-amber-500/10 bg-white/[0.03] px-2 py-1 text-[10px] font-medium text-slate-300 hover:border-amber-400/25 hover:bg-amber-950/20"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </td>
                 </tr>
               ))}
