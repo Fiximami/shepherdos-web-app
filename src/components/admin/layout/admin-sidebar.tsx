@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ChartNoAxesCombined,
   Church,
+  Layers,
   Megaphone,
   MessageSquare,
   MessagesSquare,
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 const adminNav = [
   { label: "Overview", href: "/admin", icon: ChartNoAxesCombined },
   { label: "Members", href: "/admin/members", icon: Users },
+  { label: "Departments & Groups", href: "/admin/departments", icon: Layers },
   { label: "Attendance", href: "/admin/attendance", icon: BellRing },
   { label: "Finance", href: "/admin/finance", icon: Receipt },
   { label: "Communication", href: "/admin/communication", icon: Megaphone },
