@@ -2,6 +2,9 @@
 
 import {
   CalendarClock,
+  CheckCircle2,
+  Clock3,
+  CircleAlert,
   Mail,
   Megaphone,
   MessageCircle,
@@ -11,7 +14,7 @@ import {
   Smartphone,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
@@ -138,6 +141,67 @@ const deliveryLogSummary = [
   { status: "Scheduled" as const, count: 16, note: "Waiting on send window" },
 ] as const;
 
+type CommunicationLogStatus = "Sent" | "Scheduled" | "Failed";
+type CommunicationLogChannel = "SMS" | "Email" | "In-app" | "Announcement";
+
+type CommunicationLogRow = {
+  id: string;
+  title: string;
+  channel: CommunicationLogChannel;
+  audience: string;
+  status: CommunicationLogStatus;
+  date: string;
+  createdBy: string;
+};
+
+const communicationLogs: CommunicationLogRow[] = [
+  {
+    id: "log-1",
+    title: "Sunday service reminder",
+    channel: "SMS",
+    audience: "All Members · Main Campus",
+    status: "Sent",
+    date: "2026-04-27T07:30:00",
+    createdBy: "Comms · Lydia Mensah",
+  },
+  {
+    id: "log-2",
+    title: "May stewardship letter",
+    channel: "Email",
+    audience: "Giving partners segment",
+    status: "Scheduled",
+    date: "2026-05-01T08:00:00",
+    createdBy: "Finance Desk · A. Mensah",
+  },
+  {
+    id: "log-3",
+    title: "Workers briefing deck",
+    channel: "In-app",
+    audience: "Usher team + hospitality",
+    status: "Sent",
+    date: "2026-04-28T19:00:00",
+    createdBy: "Admin · Joseph Boateng",
+  },
+  {
+    id: "log-4",
+    title: "Baptism orientation notice",
+    channel: "Announcement",
+    audience: "First-timers + hosts",
+    status: "Failed",
+    date: "2026-04-26T17:00:00",
+    createdBy: "Pastoral care · Ruth Eze",
+  },
+  {
+    id: "log-5",
+    title: "Youth camp registration close",
+    channel: "SMS",
+    audience: "Youth ministry + parents",
+    status: "Scheduled",
+    date: "2026-04-29T09:00:00",
+    createdBy: "Youth Office · Sam Okoro",
+  },
+];
+
 const departmentAudiences = [
   { name: "Choir", members: 34, channel: "In-app + WhatsApp" },
   { name: "Media Team", members: 19, channel: "In-app + Email" },
@@ -154,12 +218,33 @@ function statusPill(status: AnnouncementRow["status"]) {
   return map[status];
 }
 
+function logStatusPill(status: CommunicationLogStatus) {
+  const map: Record<CommunicationLogStatus, string> = {
+    Sent: "border-emerald-500/30 bg-emerald-950/40 text-emerald-100",
+    Scheduled: "border-amber-500/30 bg-amber-950/40 text-amber-50",
+    Failed: "border-rose-500/30 bg-rose-950/40 text-rose-100",
+  };
+  return map[status];
+}
+
 export default function AdminCommunicationPage() {
   const canCreateAnnouncements = hasPermission("announcements:create");
   const canSendMessages = hasPermission("messages:send");
   const canAccessCommunication = hasAnyPermission(["announcements:create", "messages:send"]);
   const [feedback, setFeedback] = useState("");
   const [activeAudience, setActiveAudience] = useState<string>("All Members");
+  const [logChannelFilter, setLogChannelFilter] = useState<CommunicationLogChannel | "All">("All");
+  const [logStatusFilter, setLogStatusFilter] = useState<CommunicationLogStatus | "All">("All");
+  const [logDateFilter, setLogDateFilter] = useState("");
+
+  const visibleCommunicationLogs = useMemo(() => {
+    return communicationLogs.filter((row) => {
+      if (logChannelFilter !== "All" && row.channel !== logChannelFilter) return false;
+      if (logStatusFilter !== "All" && row.status !== logStatusFilter) return false;
+      if (logDateFilter && !row.date.startsWith(logDateFilter)) return false;
+      return true;
+    });
+  }, [logChannelFilter, logDateFilter, logStatusFilter]);
 
   return (
     <main className="space-y-5 text-[#f4f0eb]">
@@ -410,24 +495,117 @@ export default function AdminCommunicationPage() {
       </AdminCard>
 
       <AdminCard
-        title="Communication logs"
-        description="Delivery visibility across channels—placeholders until provider webhooks are connected."
+        title="Communication Log"
+        description="Unified audit trail across message channels with clear delivery indicators."
         className="border-stone-500/15 bg-[#1a1511]/95"
       >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {deliveryLogSummary.map((row) => (
-            <div
-              key={row.status}
-              className="rounded-xl border border-stone-500/15 bg-[#14100d]/90 p-3 transition-[transform,border-color] duration-200 hover:border-orange-400/20"
-            >
-              <div className="flex items-center gap-2">
-                <Send className="size-4 shrink-0 text-orange-200/70" aria-hidden />
-                <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{row.status}</p>
+        <div className="space-y-3">
+          <div className="grid gap-2 md:grid-cols-3">
+            <label className="space-y-1">
+              <span className="text-xs text-stone-500">Channel</span>
+              <select
+                value={logChannelFilter}
+                onChange={(event) => setLogChannelFilter(event.target.value as CommunicationLogChannel | "All")}
+                className="h-9 w-full rounded-lg border border-stone-500/20 bg-[#14100d]/90 px-3 text-sm text-stone-200 outline-none focus:border-orange-400/30"
+              >
+                {["All", "SMS", "Email", "In-app", "Announcement"].map((channel) => (
+                  <option key={channel} value={channel}>
+                    {channel}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs text-stone-500">Status</span>
+              <select
+                value={logStatusFilter}
+                onChange={(event) => setLogStatusFilter(event.target.value as CommunicationLogStatus | "All")}
+                className="h-9 w-full rounded-lg border border-stone-500/20 bg-[#14100d]/90 px-3 text-sm text-stone-200 outline-none focus:border-orange-400/30"
+              >
+                {["All", "Sent", "Scheduled", "Failed"].map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs text-stone-500">Date</span>
+              <input
+                type="date"
+                value={logDateFilter}
+                onChange={(event) => setLogDateFilter(event.target.value)}
+                className="h-9 w-full rounded-lg border border-stone-500/20 bg-[#14100d]/90 px-3 text-sm text-stone-200 outline-none focus:border-orange-400/30"
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {deliveryLogSummary.map((row) => (
+              <div
+                key={row.status}
+                className="rounded-xl border border-stone-500/15 bg-[#14100d]/90 p-3 transition-[transform,border-color] duration-200 hover:border-orange-400/20"
+              >
+                <div className="flex items-center gap-2">
+                  <Send className="size-4 shrink-0 text-orange-200/70" aria-hidden />
+                  <p className="text-xs font-medium uppercase tracking-wide text-stone-500">{row.status}</p>
+                </div>
+                <p className="mt-2 text-2xl font-semibold tabular-nums text-[#fef7ed]">{row.count.toLocaleString()}</p>
+                <p className="mt-1 text-xs text-stone-500">{row.note}</p>
               </div>
-              <p className="mt-2 text-2xl font-semibold tabular-nums text-[#fef7ed]">{row.count.toLocaleString()}</p>
-              <p className="mt-1 text-xs text-stone-500">{row.note}</p>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-stone-500/15 bg-[#14100d]/80">
+            <table className="w-full min-w-[960px] border-collapse text-sm">
+              <thead className="border-b border-stone-500/15 bg-[#1c1612] text-stone-400">
+                <tr>
+                  {["Message Title", "Channel", "Audience", "Status", "Date", "Created By"].map((h) => (
+                    <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visibleCommunicationLogs.length === 0 ? (
+                  <tr className="border-t border-stone-500/10">
+                    <td colSpan={6} className="px-3 py-8 text-center text-xs text-stone-500">
+                      No communication logs match the current filters.
+                    </td>
+                  </tr>
+                ) : (
+                  visibleCommunicationLogs.map((row) => (
+                    <tr key={row.id} className="border-t border-stone-500/10">
+                      <td className="px-3 py-2.5 font-medium text-[#f4f0eb]">{row.title}</td>
+                      <td className="px-3 py-2.5 text-stone-300">{row.channel}</td>
+                      <td className="px-3 py-2.5 text-stone-400">{row.audience}</td>
+                      <td className="px-3 py-2.5">
+                        <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium", logStatusPill(row.status))}>
+                          {row.status === "Sent" ? <CheckCircle2 className="size-3.5" aria-hidden /> : null}
+                          {row.status === "Scheduled" ? <Clock3 className="size-3.5" aria-hidden /> : null}
+                          {row.status === "Failed" ? <CircleAlert className="size-3.5" aria-hidden /> : null}
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums text-stone-400">
+                        {new Date(row.date).toLocaleString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-3 py-2.5 text-stone-400">{row.createdBy}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </AdminCard>
 
