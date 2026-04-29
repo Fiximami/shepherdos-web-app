@@ -22,6 +22,7 @@ import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { Button } from "@/components/ui/button";
 import { hasAnyPermission, hasPermission } from "@/lib/permissions";
+import { receiptRecords } from "@/lib/mock-receipts";
 import { cn } from "@/lib/utils";
 
 const overviewCards = [
@@ -46,6 +47,7 @@ const incomeBreakdown = [
 const recentIncome = [
   {
     id: "in-1",
+    receiptId: "RCPT-2026-004122",
     date: "2026-04-26",
     category: "Tithe",
     amount: "GHS 2,400.00",
@@ -55,6 +57,7 @@ const recentIncome = [
   },
   {
     id: "in-2",
+    receiptId: "RCPT-2026-004087",
     date: "2026-04-26",
     category: "Offering",
     amount: "GHS 18,200.00",
@@ -64,6 +67,7 @@ const recentIncome = [
   },
   {
     id: "in-3",
+    receiptId: "RCPT-2026-003995",
     date: "2026-04-25",
     category: "Special Donation",
     amount: "GHS 5,000.00",
@@ -73,6 +77,7 @@ const recentIncome = [
   },
   {
     id: "in-4",
+    receiptId: "—",
     date: "2026-04-25",
     category: "Missions / Outreach",
     amount: "GHS 1,200.00",
@@ -529,10 +534,10 @@ export default function AdminFinancePage() {
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Recent income transactions</p>
             <div className="mt-2 overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
-              <table className="w-full min-w-[720px] border-collapse text-sm">
+              <table className="w-full min-w-[840px] border-collapse text-sm">
                 <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
                   <tr>
-                    {["Date", "Category", "Amount", "Source / contribution", "Reference", "Status"].map((h) => (
+                    {["Receipt ID", "Date", "Category", "Amount", "Source / contribution", "Reference", "Status"].map((h) => (
                       <th key={h} className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide">
                         {h}
                       </th>
@@ -542,6 +547,7 @@ export default function AdminFinancePage() {
                 <tbody>
                   {recentIncome.map((r) => (
                     <tr key={r.id} className="border-t border-white/[0.06]">
+                      <td className="px-3 py-2 font-mono text-[11px] text-amber-100/80">{r.receiptId}</td>
                       <td className="px-3 py-2 tabular-nums text-slate-400">
                         {new Date(r.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
@@ -556,6 +562,41 @@ export default function AdminFinancePage() {
               </table>
             </div>
           </div>
+        </div>
+      </AdminCard>
+
+      <AdminCard
+        title="Receipt-to-finance linkage"
+        description="Official receipt fields are mapped to finance references for audit, member support, and reconciliation."
+        className="border-white/10 bg-[#080f1c]/95"
+      >
+        <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
+          <table className="w-full min-w-[920px] border-collapse text-sm">
+            <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
+              <tr>
+                {["Receipt ID", "Date", "Amount", "Category", "Payment method", "Finance reference", "Created by"].map((h) => (
+                  <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {receiptRecords.map((row) => (
+                <tr key={row.receiptId} className="border-t border-white/[0.06]">
+                  <td className="px-3 py-2.5 font-mono text-[11px] text-amber-100/85">{row.receiptId}</td>
+                  <td className="px-3 py-2.5 tabular-nums text-slate-400">
+                    {new Date(row.dateISO).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  </td>
+                  <td className="px-3 py-2.5 font-medium tabular-nums text-white">GHS {row.amount.toLocaleString("en-GH")}</td>
+                  <td className="px-3 py-2.5 text-slate-300">{row.category}</td>
+                  <td className="px-3 py-2.5 text-slate-400">{row.paymentMethod}</td>
+                  <td className="px-3 py-2.5 font-mono text-xs text-amber-100/80">{row.financeReference}</td>
+                  <td className="px-3 py-2.5 text-slate-500">{row.createdBy}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </AdminCard>
 

@@ -6,21 +6,17 @@ import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { buildReceiptId, receiptRecords, type ReceiptCategory, type ReceiptPaymentMethod } from "@/lib/mock-receipts";
 import { cn } from "@/lib/utils";
 
-export type GivingCategory =
-  | "Tithe"
-  | "Offering"
-  | "Special Donation"
-  | "Welfare"
-  | "Pledge"
-  | "Project Support"
-  | "Missions / Outreach";
+export type GivingCategory = ReceiptCategory;
 
-type PaymentMethod = "Mobile Money" | "Card" | "Bank Transfer";
+type PaymentMethod = ReceiptPaymentMethod;
 
 type GivingHistoryItem = {
   id: string;
+  receiptId: string | null;
+  financeReference: string | null;
   category: GivingCategory;
   amount: number;
   method: PaymentMethod;
@@ -41,6 +37,8 @@ const givingCategories: Array<{ name: GivingCategory; detail: string }> = [
 const initialHistory: GivingHistoryItem[] = [
   {
     id: "g-1",
+    receiptId: "RCPT-2026-004122",
+    financeReference: "INC-2026-08912",
     category: "Tithe",
     amount: 2400,
     method: "Mobile Money",
@@ -49,6 +47,8 @@ const initialHistory: GivingHistoryItem[] = [
   },
   {
     id: "g-2",
+    receiptId: "RCPT-2026-004087",
+    financeReference: "INC-2026-08876",
     category: "Offering",
     amount: 350,
     method: "Card",
@@ -57,6 +57,8 @@ const initialHistory: GivingHistoryItem[] = [
   },
   {
     id: "g-3",
+    receiptId: "RCPT-2026-003995",
+    financeReference: "INC-2026-08793",
     category: "Welfare",
     amount: 200,
     method: "Bank Transfer",
@@ -65,6 +67,8 @@ const initialHistory: GivingHistoryItem[] = [
   },
   {
     id: "g-4",
+    receiptId: "RCPT-2026-003872",
+    financeReference: "INC-2026-08698",
     category: "Missions / Outreach",
     amount: 500,
     method: "Mobile Money",
@@ -73,6 +77,8 @@ const initialHistory: GivingHistoryItem[] = [
   },
   {
     id: "g-5",
+    receiptId: "RCPT-2026-002455",
+    financeReference: "INC-2026-07802",
     category: "Pledge",
     amount: 600,
     method: "Card",
@@ -81,6 +87,8 @@ const initialHistory: GivingHistoryItem[] = [
   },
   {
     id: "g-6",
+    receiptId: null,
+    financeReference: null,
     category: "Project Support",
     amount: 150,
     method: "Mobile Money",
@@ -126,6 +134,7 @@ export function MemberGivingPageView() {
   const [note, setNote] = useState("");
   const [history, setHistory] = useState<GivingHistoryItem[]>(initialHistory);
   const [selectedReceiptIds, setSelectedReceiptIds] = useState<Set<string>>(new Set());
+  const [previewReceiptId, setPreviewReceiptId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
 
   const parsedAmount = Number(amountInput);
@@ -168,6 +177,8 @@ export function MemberGivingPageView() {
     const d = String(now.getDate()).padStart(2, "0");
     const nextItem: GivingHistoryItem = {
       id: `g-${Date.now()}`,
+      receiptId: buildReceiptId(Date.now()),
+      financeReference: `INC-2026-${String(Date.now()).slice(-5)}`,
       category: selectedCategory,
       amount: parsedAmount,
       method: paymentMethod,
@@ -182,6 +193,24 @@ export function MemberGivingPageView() {
   };
 
   const sortedHistory = useMemo(() => [...history].sort((a, b) => b.dateISO.localeCompare(a.dateISO)), [history]);
+  const receiptIndex = useMemo(() => new Map(receiptRecords.map((r) => [r.receiptId, r])), []);
+  const previewReceipt = useMemo(() => {
+    if (!previewReceiptId) return null;
+    const fromLibrary = receiptIndex.get(previewReceiptId);
+    if (fromLibrary) return fromLibrary;
+    const fromHistory = history.find((h) => h.receiptId === previewReceiptId);
+    if (!fromHistory || !fromHistory.receiptId || !fromHistory.financeReference) return null;
+    return {
+      receiptId: fromHistory.receiptId,
+      transactionId: fromHistory.id,
+      financeReference: fromHistory.financeReference,
+      dateISO: fromHistory.dateISO,
+      amount: fromHistory.amount,
+      category: fromHistory.category,
+      paymentMethod: fromHistory.method,
+      createdBy: "Member Portal · John Doe",
+    };
+  }, [history, previewReceiptId, receiptIndex]);
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-5 lg:p-6">
@@ -357,6 +386,7 @@ export function MemberGivingPageView() {
                 <thead>
                   <tr className="border-b border-white/10 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                     <th className="w-10 py-2 pr-2" aria-label="Select for receipt" />
+                    <th className="py-2 pr-3">Receipt ID</th>
                     <th className="py-2 pr-3">Date</th>
                     <th className="py-2 pr-3">Giving type</th>
                     <th className="py-2 pr-3">Amount</th>
@@ -383,6 +413,7 @@ export function MemberGivingPageView() {
                             <span className="inline-block w-4" />
                           )}
                         </td>
+                        <td className="py-2.5 pr-3 font-mono text-[11px] text-amber-100/80">{row.receiptId ?? "Pending"}</td>
                         <td className="py-2.5 pr-3 tabular-nums text-slate-400">{formatDisplayDate(row.dateISO)}</td>
                         <td className="py-2.5 pr-3 text-white">{row.category}</td>
                         <td className="py-2.5 pr-3 font-medium tabular-nums text-white">{formatCurrency(row.amount)}</td>
@@ -401,11 +432,21 @@ export function MemberGivingPageView() {
                           {canReceipt ? (
                             <button
                               type="button"
-                              onClick={() => setFeedback(`Download receipt for ${formatDisplayDate(row.dateISO)} · ${formatCurrency(row.amount)} (preview).`)}
+                              onClick={() => setFeedback(`Download receipt ${row.receiptId ?? "Pending"} (preview).`)}
                               className="inline-flex items-center gap-1 text-xs font-medium text-amber-200/90 hover:text-amber-100"
                             >
                               <Download className="size-3.5" aria-hidden />
                               Download receipt
+                            </button>
+                          ) : null}
+                          {canReceipt && row.receiptId ? (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewReceiptId(row.receiptId)}
+                              className="ml-3 inline-flex items-center gap-1 text-xs font-medium text-slate-300 hover:text-white"
+                            >
+                              <FileText className="size-3.5" aria-hidden />
+                              Preview
                             </button>
                           ) : (
                             <span className="text-xs text-slate-600">—</span>
@@ -432,7 +473,7 @@ export function MemberGivingPageView() {
                 disabled={selectedReceiptIds.size === 0}
                 onClick={() =>
                   setFeedback(
-                    `Download selected receipts (${selectedReceiptIds.size}) — preview. In production this bundles PDFs you ticked in the table.`,
+                    `Download selected receipts (${selectedReceiptIds.size}) — preview bundle. Includes receipt IDs, dates, amounts, categories, and methods.`,
                   )
                 }
               >
@@ -509,6 +550,56 @@ export function MemberGivingPageView() {
           </Card>
         </div>
       </section>
+
+      {previewReceipt ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-8">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/15 bg-[#0d1b2b] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+              <p className="text-sm font-semibold text-white">Receipt Preview</p>
+              <button
+                type="button"
+                onClick={() => setPreviewReceiptId(null)}
+                className="rounded-md border border-white/15 px-2 py-1 text-xs text-slate-300 hover:bg-white/[0.06]"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-4 p-5">
+              <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-lg font-semibold text-white">ShepherdOS Giving Receipt</p>
+                <p className="mt-1 text-xs text-slate-400">Official record for member contribution (mock preview).</p>
+                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                  <p className="text-slate-300">Receipt ID: <span className="font-mono text-amber-100/85">{previewReceipt.receiptId}</span></p>
+                  <p className="text-slate-300">Finance Ref: <span className="font-mono text-amber-100/85">{previewReceipt.financeReference}</span></p>
+                  <p className="text-slate-300">Date: {formatDisplayDate(previewReceipt.dateISO)}</p>
+                  <p className="text-slate-300">Amount: {formatCurrency(previewReceipt.amount)}</p>
+                  <p className="text-slate-300">Category: {previewReceipt.category}</p>
+                  <p className="text-slate-300">Payment method: {previewReceipt.paymentMethod}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 border-amber-500/25 bg-[#0c1824]/80 text-amber-50 hover:bg-[#0c1824]"
+                  onClick={() => setFeedback(`Download single receipt ${previewReceipt.receiptId} (preview PDF).`)}
+                >
+                  <Download className="size-4" aria-hidden />
+                  Download single receipt
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 border-white/15 bg-transparent text-white hover:bg-white/[0.06]"
+                  onClick={() => setFeedback(`Print-ready view for ${previewReceipt.receiptId} (preview).`)}
+                >
+                  Printable format
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
