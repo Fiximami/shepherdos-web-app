@@ -42,6 +42,7 @@ const incomeBreakdown = [
   { category: "Pledge", amount: 41_200, pct: 10 },
   { category: "Project Support", amount: 68_400, pct: 16 },
   { category: "Missions / Outreach", amount: 37_300, pct: 9 },
+  { category: "Inventory Sales / Resource Sales", amount: 12_480, pct: 3 },
 ] as const;
 
 const recentIncome = [
@@ -85,7 +86,69 @@ const recentIncome = [
     reference: "INC-2026-08890",
     status: "Pending L1",
   },
+  {
+    id: "in-5",
+    receiptId: "INV-RCPT-2026-00124",
+    date: "2026-04-27",
+    category: "Inventory Sales / Resource Sales",
+    amount: "GHS 640.00",
+    source: "Church Store order batch · confirmed cash",
+    reference: "INV-INC-2026-00452",
+    status: "Posted",
+  },
+  {
+    id: "in-6",
+    receiptId: "INV-RCPT-2026-00131",
+    date: "2026-04-28",
+    category: "Inventory Sales / Resource Sales",
+    amount: "GHS 320.00",
+    source: "Church Store · pending cash confirmation",
+    reference: "INV-INC-2026-00470",
+    status: "Pending confirmation",
+  },
 ] as const;
+
+const inventoryFinanceSummary = [
+  { label: "Inventory Revenue This Month", value: "GHS 12,480", note: "Store sales recognized in finance period." },
+  { label: "Pending Cash Inventory Payments", value: "GHS 2,140", note: "Awaiting physical payment confirmation." },
+  { label: "Confirmed Inventory Sales", value: "GHS 10,340", note: "Posted to income after confirmation." },
+] as const;
+
+type SyncStatus = "Synced" | "Pending Confirmation" | "Requires Review";
+
+const inventorySyncRows: Array<{
+  id: string;
+  orderRef: string;
+  itemSummary: string;
+  amount: string;
+  paymentStatus: string;
+  syncStatus: SyncStatus;
+}> = [
+  {
+    id: "is-1",
+    orderRef: "ord-2203",
+    itemSummary: "Sermon Notes Journal Pack ×3",
+    amount: "GHS 120.00",
+    paymentStatus: "Cash Confirmed",
+    syncStatus: "Synced",
+  },
+  {
+    id: "is-2",
+    orderRef: "ord-2202",
+    itemSummary: "Church Branded Polo ×1",
+    amount: "GHS 120.00",
+    paymentStatus: "Pending Cash",
+    syncStatus: "Pending Confirmation",
+  },
+  {
+    id: "is-3",
+    orderRef: "ord-2241",
+    itemSummary: "Choir Robe (Navy/Gold) ×1",
+    amount: "GHS 260.00",
+    paymentStatus: "Paid Online",
+    syncStatus: "Requires Review",
+  },
+];
 
 const expenseCategoriesIntro = [
   "Operational expenses",
@@ -429,6 +492,15 @@ function budgetStatusBadge(s: BudgetStatus) {
   return map[s];
 }
 
+function syncStatusBadge(s: SyncStatus) {
+  const map: Record<SyncStatus, string> = {
+    Synced: "border-emerald-500/25 bg-emerald-950/35 text-emerald-100",
+    "Pending Confirmation": "border-amber-500/25 bg-amber-950/35 text-amber-50",
+    "Requires Review": "border-rose-500/25 bg-rose-950/35 text-rose-100",
+  };
+  return map[s];
+}
+
 function formatGhs(n: number) {
   return `GHS ${n.toLocaleString("en-GH")}`;
 }
@@ -507,6 +579,26 @@ export default function AdminFinancePage() {
           </AdminCard>
         ))}
       </section>
+
+      <AdminCard
+        title="Inventory sales finance integration"
+        description="Inventory and resource sales are tracked separately from Giving and posted only after payment confirmation."
+        className="border-amber-500/10 bg-[#080f1c]/95"
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {inventoryFinanceSummary.map((row) => (
+            <div key={row.label} className="rounded-lg border border-white/[0.08] bg-[#0c1524] px-3 py-3">
+              <p className="text-xs text-slate-500">{row.label}</p>
+              <p className="mt-1 text-lg font-semibold text-white">{row.value}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{row.note}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 rounded-lg border border-white/[0.08] bg-[#0c1524] px-3 py-2.5 text-xs text-slate-400">
+          Inventory Sales / Resource Sales become finance income only after payment is confirmed. Giving (tithes, offerings, donations,
+          pledges) remains separate from inventory transactions.
+        </div>
+      </AdminCard>
 
       <AdminCard
         title="Income tracking"
@@ -593,6 +685,41 @@ export default function AdminFinancePage() {
                   <td className="px-3 py-2.5 text-slate-400">{row.paymentMethod}</td>
                   <td className="px-3 py-2.5 font-mono text-xs text-amber-100/80">{row.financeReference}</td>
                   <td className="px-3 py-2.5 text-slate-500">{row.createdBy}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </AdminCard>
+
+      <AdminCard
+        title="Inventory finance sync status"
+        description="Track whether inventory sale records are posted, pending confirmation, or flagged for review."
+        className="border-white/10 bg-[#080f1c]/95"
+      >
+        <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
+          <table className="w-full min-w-[860px] border-collapse text-sm">
+            <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
+              <tr>
+                {["Order Ref", "Item / Sales Entry", "Amount", "Payment Status", "Finance Sync Status"].map((h) => (
+                  <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {inventorySyncRows.map((row) => (
+                <tr key={row.id} className="border-t border-white/[0.06]">
+                  <td className="px-3 py-2.5 font-mono text-xs text-amber-100/85">{row.orderRef}</td>
+                  <td className="px-3 py-2.5 text-slate-300">{row.itemSummary}</td>
+                  <td className="px-3 py-2.5 tabular-nums text-white">{row.amount}</td>
+                  <td className="px-3 py-2.5 text-slate-400">{row.paymentStatus}</td>
+                  <td className="px-3 py-2.5">
+                    <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", syncStatusBadge(row.syncStatus))}>
+                      {row.syncStatus}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
