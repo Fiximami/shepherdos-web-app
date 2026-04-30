@@ -1,12 +1,14 @@
 "use client";
 
 import { CalendarPlus, ClipboardList, QrCode, ShieldCheck, Timer } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { Button } from "@/components/ui/button";
+import { readSmartAttendanceRecords } from "@/lib/smart-attendance-storage";
+import { cn } from "@/lib/utils";
 
 const summaryCards = [
   { label: "Attendance Today", value: "912", note: "Across recorded services" },
@@ -85,9 +87,75 @@ const absentees = [
   { name: "Grace Nwosu", branch: "South Branch", missed: "3 Sundays", followUp: "Awaiting first call" },
 ] as const;
 
+type AttendanceStatus = "Verified" | "Late" | "Location Mismatch" | "Manual Override" | "Suspicious Pattern";
+
+type SmartAttendanceRow = {
+  member: string;
+  event: string;
+  timestamp: string;
+  location: string;
+  status: AttendanceStatus;
+  verificationNotes: string;
+};
+
+const smartAttendanceRows: SmartAttendanceRow[] = [
+  {
+    member: "Ruth Eze",
+    event: "Sunday Celebration — Main Campus",
+    timestamp: "2026-04-27T08:52:00",
+    location: "5.6037, -0.1871",
+    status: "Verified",
+    verificationNotes: "Within time window and accepted radius.",
+  },
+  {
+    member: "Samuel Okoro",
+    event: "Youth Gathering",
+    timestamp: "2026-04-20T10:18:00",
+    location: "5.5978, -0.2418",
+    status: "Location Mismatch",
+    verificationNotes: "Check-in was outside allowed location radius.",
+  },
+  {
+    member: "Miriam Osei",
+    event: "Midweek Prayer",
+    timestamp: "2026-04-24T19:40:00",
+    location: "5.6035, -0.1887",
+    status: "Late",
+    verificationNotes: "Arrived outside primary window but still accepted.",
+  },
+  {
+    member: "Daniel Kwarteng",
+    event: "Sunday Celebration — South Branch",
+    timestamp: "2026-04-20T08:45:00",
+    location: "5.5721, -0.3155",
+    status: "Suspicious Pattern",
+    verificationNotes: "Repeated mismatch and instant check-in behavior detected.",
+  },
+  {
+    member: "Grace Nwosu",
+    event: "Sunday Celebration — Main Campus",
+    timestamp: "2026-04-20T09:02:00",
+    location: "5.6036, -0.1870",
+    status: "Manual Override",
+    verificationNotes: "Leader corrected status after in-person verification.",
+  },
+];
+
+function smartStatusBadge(status: AttendanceStatus) {
+  const map: Record<AttendanceStatus, string> = {
+    Verified: "border-emerald-500/20 bg-emerald-950/35 text-emerald-100",
+    Late: "border-amber-500/25 bg-amber-950/35 text-amber-100",
+    "Location Mismatch": "border-rose-500/25 bg-rose-950/35 text-rose-100",
+    "Manual Override": "border-sky-500/25 bg-sky-950/35 text-sky-100",
+    "Suspicious Pattern": "border-fuchsia-500/25 bg-fuchsia-950/35 text-fuchsia-100",
+  };
+  return map[status];
+}
+
 export default function AdminAttendancePage() {
   const [feedback, setFeedback] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("All Departments");
+  const [liveSmartRows, setLiveSmartRows] = useState<SmartAttendanceRow[]>([]);
 
   const sessionRows =
     departmentFilter === "All Departments" ? sessions : sessions.filter((row) => row.department === departmentFilter);
@@ -99,6 +167,47 @@ export default function AdminAttendancePage() {
     { dept: "Sunday School", present: 74 },
     { dept: "Ushering Team", present: 91 },
   ] as const;
+  const trustRows = [
+    {
+      member: "Ruth Eze",
+      score: 92,
+      trend: "Stable",
+      note: "Mostly verified check-ins within expected time and location bounds.",
+    },
+    {
+      member: "Miriam Osei",
+      score: 68,
+      trend: "Watch",
+      note: "Occasional late confirmations with one manual correction.",
+    },
+    {
+      member: "Samuel Okoro",
+      score: 48,
+      trend: "Needs Review",
+      note: "Repeated location mismatches across recent events.",
+    },
+    {
+      member: "Daniel Kwarteng",
+      score: 34,
+      trend: "Flagged",
+      note: "Suspicious pattern due to mismatch and rapid check-ins.",
+    },
+  ] as const;
+
+  useEffect(() => {
+    const stored = readSmartAttendanceRecords();
+    const mapped: SmartAttendanceRow[] = stored.map((record) => ({
+      member: record.member_id === "member-001" ? "Current Member (Self Check-In)" : record.member_id,
+      event: record.event_id,
+      timestamp: record.timestamp,
+      location: `${record.location.lat.toFixed(4)}, ${record.location.lng.toFixed(4)}`,
+      status: record.status,
+      verificationNotes: record.verification_notes,
+    }));
+    setLiveSmartRows(mapped);
+  }, []);
+
+  const mergedSmartRows = useMemo(() => [...liveSmartRows, ...smartAttendanceRows], [liveSmartRows]);
 
   return (
     <main className="space-y-5">
@@ -127,6 +236,28 @@ export default function AdminAttendancePage() {
         <p className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-gray-300">{feedback}</p>
       ) : null}
 
+      <AdminCard
+        title="Smart check-in management"
+        description="Leadership review area for member self check-ins, validation outcomes, and trust scoring."
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            className="h-8 rounded-lg border-white/15 bg-white/[0.06] text-white"
+            onClick={() => setFeedback("Open smart check-in validation list below.")}
+          >
+            View Smart Check-Ins
+          </Button>
+          <Button
+            variant="outline"
+            className="h-8 rounded-lg border-white/15 bg-white/[0.06] text-white"
+            onClick={() => setFeedback("Review flagged members and trust score panels below.")}
+          >
+            Review Flagged Members
+          </Button>
+        </div>
+      </AdminCard>
+
       <section className="shepherd-fade-in grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {summaryCards.map((card) => (
           <AdminCard key={card.label} title={card.label}>
@@ -138,7 +269,7 @@ export default function AdminAttendancePage() {
 
       <AdminCard
         title="Attendance sessions"
-        description="Official counts recorded by approved leaders. Members do not self-mark attendance here."
+        description="Official counts recorded by approved leaders, with additional member self check-in validation review below."
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-xs text-gray-400">Department filter:</span>
@@ -312,6 +443,110 @@ export default function AdminAttendancePage() {
           </div>
         </AdminCard>
       </div>
+
+      <AdminCard
+        title="Smart member check-in validation"
+        description="Validated attendance records with trust signals from time, location, and behavior checks."
+      >
+        <div className="overflow-x-auto rounded-xl border border-white/10">
+          <table className="w-full min-w-[1080px] border-collapse text-sm">
+            <thead className="bg-white/[0.06] text-gray-300">
+              <tr>
+                {["Member", "Event", "Timestamp", "Location (lat/long)", "Status", "Verification Notes"].map((h) => (
+                  <th key={h} className="px-3 py-2 text-left font-medium">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {mergedSmartRows.map((row) => (
+                <tr key={`${row.member}-${row.timestamp}`} className="border-t border-white/10 bg-white/[0.03]">
+                  <td className="px-3 py-2 text-white">{row.member}</td>
+                  <td className="px-3 py-2 text-gray-300">{row.event}</td>
+                  <td className="px-3 py-2 text-gray-300">
+                    {new Date(row.timestamp).toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-xs text-gray-400">{row.location}</td>
+                  <td className="px-3 py-2">
+                    <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", smartStatusBadge(row.status))}>
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-gray-400">{row.verificationNotes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </AdminCard>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <AdminCard
+          title="Flagged / suspicious members"
+          description="Basic pattern detection flags repeated mismatch, instant check-ins, and inconsistent attendance behavior."
+        >
+          <ul className="space-y-2">
+            {mergedSmartRows
+              .filter((row) => row.status === "Location Mismatch" || row.status === "Suspicious Pattern")
+              .map((row) => (
+                <li key={`${row.member}-${row.event}`} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-gray-300">
+                  <span className="font-medium text-white">{row.member}</span> · {row.event}
+                  <p className="mt-1 text-xs text-amber-100/90">{row.status}</p>
+                  <p className="mt-1 text-xs text-gray-400">{row.verificationNotes}</p>
+                </li>
+              ))}
+          </ul>
+        </AdminCard>
+
+        <AdminCard
+          title="Location mismatch indicators"
+          description="Entries requiring leader review before attendance trust score is increased."
+        >
+          <ul className="space-y-2">
+            {mergedSmartRows
+              .filter((row) => row.status === "Location Mismatch")
+              .map((row) => (
+                <li key={`${row.member}-${row.timestamp}`} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-gray-300">
+                  <span className="font-medium text-white">{row.member}</span>
+                  <p className="mt-1 text-xs text-gray-400">Location: {row.location}</p>
+                  <p className="mt-1 text-xs text-rose-100/90">{row.verificationNotes}</p>
+                </li>
+              ))}
+          </ul>
+        </AdminCard>
+      </div>
+
+      <AdminCard
+        title="Member trust score review"
+        description="Simple confidence scoring for attendance integrity to help leadership prioritize review and pastoral follow-up."
+      >
+        <div className="space-y-2.5">
+          {trustRows.map((row) => (
+            <div key={row.member} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-white">{row.member}</p>
+                <span className="text-xs text-amber-100/90">{row.score}% · {row.trend}</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={cn(
+                    "h-full rounded-full",
+                    row.score >= 75 ? "bg-emerald-500/70" : row.score >= 50 ? "bg-amber-500/70" : "bg-rose-500/70",
+                  )}
+                  style={{ width: `${row.score}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-400">{row.note}</p>
+            </div>
+          ))}
+        </div>
+      </AdminCard>
     </main>
   );
 }

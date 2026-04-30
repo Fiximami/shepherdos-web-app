@@ -17,24 +17,32 @@ import {
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
+import type { ComponentType } from "react";
 
 import { routes } from "@/lib/constants/navigation";
 import { mockUser } from "@/lib/mock-user";
 import { cn } from "@/lib/utils";
 
-const memberSidebarItems = [
-  { label: "My Dashboard", href: routes.app.dashboard, icon: LayoutGrid },
-  { label: "My Profile", href: routes.app.profile, icon: CircleUserRound },
-  { label: "Community Feed", href: routes.app.feed, icon: MessageCircleHeart },
-  { label: "Events", href: routes.app.events, icon: CalendarDays },
-  { label: "Prayer Requests", href: routes.app.prayerRequests, icon: HeartHandshake },
-  { label: "Counselling", href: routes.app.counselling, icon: Compass },
-  { label: "Giving", href: routes.app.giving, icon: Wallet },
-  { label: "Store", href: routes.app.store, icon: ShoppingBag },
-  { label: "My Celebrations", href: routes.app.celebrations, icon: Gift },
-  { label: "Notifications", href: routes.app.notifications, icon: Bell },
-  { label: "Messages", href: routes.app.messages, icon: MessagesSquare },
-  { label: "Settings", href: routes.app.settings, icon: Settings },
+type MemberSidebarItem = {
+  id: string;
+  label: string;
+  href: string;
+  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+};
+
+const memberSidebarItems: MemberSidebarItem[] = [
+  { id: "dashboard", label: "My Dashboard", href: routes.app.dashboard, icon: LayoutGrid },
+  { id: "profile", label: "My Profile", href: routes.app.profile, icon: CircleUserRound },
+  { id: "feed", label: "Community Feed", href: routes.app.feed, icon: MessageCircleHeart },
+  { id: "events", label: "Events", href: routes.app.events, icon: CalendarDays },
+  { id: "prayer-requests", label: "Prayer Requests", href: routes.app.prayerRequests, icon: HeartHandshake },
+  { id: "counselling", label: "Counselling", href: routes.app.counselling, icon: Compass },
+  { id: "giving", label: "Giving", href: routes.app.giving, icon: Wallet },
+  { id: "store", label: "Store", href: routes.app.store, icon: ShoppingBag },
+  { id: "celebrations", label: "My Celebrations", href: routes.app.celebrations, icon: Gift },
+  { id: "notifications", label: "Notifications", href: routes.app.notifications, icon: Bell },
+  { id: "messages", label: "Messages", href: routes.app.messages, icon: MessagesSquare },
+  { id: "settings", label: "Settings", href: routes.app.settings, icon: Settings },
 ] as const;
 
 type SidebarProps = {
@@ -70,7 +78,7 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
           const isActive = !item.href.includes("#") && currentPath === item.href;
           return (
             <Link
-              key={item.href}
+              key={item.id}
               href={item.href}
               onClick={onNavigate}
               className={cn(
