@@ -12,6 +12,7 @@ import {
   MessageCircleHeart,
   MessagesSquare,
   NotebookPen,
+  ShoppingBag,
   Settings,
   Wallet,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const memberSidebarItems = [
   { label: "Prayer Requests", href: routes.app.prayerRequests, icon: HeartHandshake },
   { label: "Counselling", href: routes.app.counselling, icon: Compass },
   { label: "Giving", href: routes.app.giving, icon: Wallet },
+  { label: "Store", href: routes.app.store, icon: ShoppingBag },
   { label: "My Celebrations", href: routes.app.celebrations, icon: Gift },
   { label: "Notifications", href: routes.app.notifications, icon: Bell },
   { label: "Messages", href: routes.app.messages, icon: MessagesSquare },

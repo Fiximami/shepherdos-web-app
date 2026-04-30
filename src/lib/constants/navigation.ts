@@ -10,6 +10,7 @@ export const routes = {
     prayerRequests: "/prayer-requests",
     counselling: "/counselling",
     giving: "/giving",
+    store: "/store",
     celebrations: "/celebrations",
     notifications: "/notifications",
     messages: "/messages",
