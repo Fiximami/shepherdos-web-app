@@ -520,12 +520,18 @@ export default function AdminFinancePage() {
   const summaryQuery = useApiData("admin-finance-summary", fetchFinanceSummary, {});
   const transactionsQuery = useApiData(
     "admin-finance-transactions",
-    async () => (await fetchFinanceTransactions()).map(mapApiFinanceTransaction),
+    async () => {
+      const transactions = await fetchFinanceTransactions();
+      return Array.isArray(transactions) ? transactions.map(mapApiFinanceTransaction) : [];
+    },
     recentIncome,
   );
   const auditQuery = useApiData(
     "admin-audit-logs",
-    async () => (await fetchAuditLogs({ page: 1, limit: 10 })).map(mapApiAuditLog),
+    async () => {
+      const logs = await fetchAuditLogs({ page: 1, limit: 10 });
+      return Array.isArray(logs) ? logs.map(mapApiAuditLog) : [];
+    },
     fallbackAuditRows.map((row, index) => ({
       id: `audit-${index}`,
       action: row.action,
@@ -547,17 +553,26 @@ export default function AdminFinancePage() {
       ]
     : fallbackOverviewCards;
 
-  const liveRecentIncome = transactionsQuery.isLive ? transactionsQuery.data : recentIncome;
-  const auditRows = auditQuery.isLive
-    ? auditQuery.data.map((row) => ({
-        action: row.action,
-        transaction: row.entity,
-        user: row.actor,
-        timestamp: row.timestamp,
-        previousValue: row.details.split(" → ")[0] ?? "—",
-        newValue: row.details.split(" → ")[1] ?? row.details,
-      }))
-    : fallbackAuditRows;
+  const liveRecentIncome =
+    transactionsQuery.isLive && Array.isArray(transactionsQuery.data)
+      ? transactionsQuery.data
+      : recentIncome;
+  const auditRows =
+    auditQuery.isLive && Array.isArray(auditQuery.data)
+      ? auditQuery.data.map((row) => {
+          const details = typeof row.details === "string" ? row.details : String(row.details ?? "—");
+          const parts = details.split(" → ");
+
+          return {
+            action: row.action ?? "Updated",
+            transaction: row.entity ?? "—",
+            user: row.actor ?? "—",
+            timestamp: row.timestamp ?? "—",
+            previousValue: parts[0] ?? "—",
+            newValue: parts[1] ?? details,
+          };
+        })
+      : fallbackAuditRows;
 
   return (
     <main className="space-y-5 text-[#e8edf5]">

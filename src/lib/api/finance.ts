@@ -1,18 +1,13 @@
 import { apiAuthRequest } from "@/lib/api/client";
-import type { ApiFinanceTransaction, ApiListResponse, FinanceSummary } from "@/lib/api/types";
+import { unwrapApiList, unwrapApiSummary } from "@/lib/api/normalize";
+import type { ApiFinanceTransaction, FinanceSummary } from "@/lib/api/types";
 
-function unwrapList<T>(response: ApiListResponse<T> | T[]): T[] {
-  if (Array.isArray(response)) return response;
-  return response.data ?? response.items ?? response.results ?? [];
+export async function fetchFinanceSummary(): Promise<FinanceSummary> {
+  const response = await apiAuthRequest<unknown>("/finance/summary");
+  return unwrapApiSummary(response);
 }
 
-export async function fetchFinanceSummary() {
-  return apiAuthRequest<FinanceSummary>("/finance/summary");
-}
-
-export async function fetchFinanceTransactions() {
-  const response = await apiAuthRequest<ApiListResponse<ApiFinanceTransaction> | ApiFinanceTransaction[]>(
-    "/finance/transactions",
-  );
-  return unwrapList(response);
+export async function fetchFinanceTransactions(): Promise<ApiFinanceTransaction[]> {
+  const response = await apiAuthRequest<unknown>("/finance/transactions");
+  return unwrapApiList<ApiFinanceTransaction>(response);
 }

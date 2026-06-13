@@ -1,15 +1,11 @@
 import { apiAuthRequest } from "@/lib/api/client";
-import type { ApiAuditLog, ApiListResponse } from "@/lib/api/types";
+import { unwrapApiList } from "@/lib/api/normalize";
+import type { ApiAuditLog } from "@/lib/api/types";
 
 type FetchAuditLogsParams = {
   page?: number;
   limit?: number;
 };
-
-function unwrapList<T>(response: ApiListResponse<T> | T[]): T[] {
-  if (Array.isArray(response)) return response;
-  return response.data ?? response.items ?? response.results ?? [];
-}
 
 export async function fetchAuditLogs(params: FetchAuditLogsParams = {}) {
   const searchParams = new URLSearchParams();
@@ -18,8 +14,8 @@ export async function fetchAuditLogs(params: FetchAuditLogsParams = {}) {
 
   const query = searchParams.toString();
   const path = query ? `/audit-logs?${query}` : "/audit-logs";
-  const response = await apiAuthRequest<ApiListResponse<ApiAuditLog> | ApiAuditLog[]>(path);
-  return unwrapList(response);
+  const response = await apiAuthRequest<unknown>(path);
+  return unwrapApiList<ApiAuditLog>(response);
 }
 
 export async function fetchAuditLogById(id: string) {
@@ -27,8 +23,8 @@ export async function fetchAuditLogById(id: string) {
 }
 
 export async function fetchAuditLogsByEntity(entityType: string, entityId: string) {
-  const response = await apiAuthRequest<ApiListResponse<ApiAuditLog> | ApiAuditLog[]>(
+  const response = await apiAuthRequest<unknown>(
     `/audit-logs/entity/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`,
   );
-  return unwrapList(response);
+  return unwrapApiList<ApiAuditLog>(response);
 }

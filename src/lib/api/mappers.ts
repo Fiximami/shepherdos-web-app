@@ -145,33 +145,65 @@ export function mapApiAttendanceSession(session: ApiAttendanceSession): SessionR
   };
 }
 
-export function mapApiAuditLog(log: ApiAuditLog): AuditRow {
-  const changeSummary = [log.before, log.after].filter(Boolean).join(" → ");
+export function mapApiAuditLog(log: ApiAuditLog | null | undefined): AuditRow {
+  if (!log || typeof log !== "object") {
+    return {
+      id: "unknown",
+      action: "Updated",
+      actor: "System",
+      entity: "Record",
+      timestamp: "—",
+      details: "—",
+    };
+  }
+
+  const record = log as Record<string, unknown>;
+  const before = record.before ?? record.previousValue ?? record.oldValue;
+  const after = record.after ?? record.newValue ?? record.updatedValue;
+  const changeSummary = [before, after]
+    .filter((value) => value !== null && value !== undefined && value !== "")
+    .map((value) => formatApiValue(value))
+    .join(" → ");
   const fallbackDetails = changeSummary !== "" ? changeSummary : "—";
 
   return {
-    id: log.id,
-    action: log.action ?? "Updated",
-    actor: log.actor ?? log.actorName ?? "System",
-    entity: log.entity ?? log.entityType ?? "Record",
-    timestamp: log.timestamp ?? log.createdAt ?? "—",
-    details: log.details ?? fallbackDetails,
+    id: String(record.id ?? record._id ?? "unknown"),
+    action: formatApiValue(record.action, "Updated"),
+    actor: formatApiValue(record.actor ?? record.actorName ?? record.user, "System"),
+    entity: formatApiValue(record.entity ?? record.entityType ?? record.entityId, "Record"),
+    timestamp: formatApiValue(record.timestamp ?? record.createdAt ?? record.created_at, "—"),
+    details: formatApiValue(record.details ?? fallbackDetails, "—"),
   };
 }
 
-export function mapApiFinanceTransaction(transaction: ApiFinanceTransaction) {
+export function mapApiFinanceTransaction(transaction: ApiFinanceTransaction | null | undefined) {
+  if (!transaction || typeof transaction !== "object") {
+    return {
+      id: "unknown",
+      receiptId: "—",
+      date: "—",
+      category: "Income",
+      amount: "—",
+      source: "—",
+      reference: "—",
+      status: "Posted",
+    };
+  }
+
+  const record = transaction as Record<string, unknown>;
+
   return {
-    id: transaction.id,
-    receiptId: transaction.receiptId ?? "—",
-    date: transaction.date ?? "—",
-    category: transaction.category ?? "Income",
+    id: String(record.id ?? record._id ?? record.reference ?? "unknown"),
+    receiptId: formatApiValue(record.receiptId ?? record.receipt_id, "—"),
+    date: formatApiValue(record.date ?? record.createdAt ?? record.created_at, "—"),
+    category: formatApiValue(record.category ?? record.type, "Income"),
     amount:
-      typeof transaction.amount === "number"
-        ? formatCurrency(transaction.amount)
-        : transaction.amount?.toString() ?? "—",
-    source: transaction.source ?? "—",
-    reference: transaction.reference ?? "—",
-    status: transaction.status ?? "Posted",
+      typeof record.amount === "number"
+        ? formatCurrency(record.amount)
+        : formatApiValue(record.amount, "—"),
+    source: formatApiValue(record.source ?? record.member ?? record.memberName, "—"),
+    reference: formatApiValue(record.reference ?? record.financeReference, "—"),
+    status: formatApiValue(record.status, "Posted"),
   };
 }
 

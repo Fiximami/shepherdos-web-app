@@ -1,3 +1,5 @@
+import { asRecord } from "@/lib/api/normalize";
+
 export function formatApiValue(value: unknown, fallback = "—"): string {
   if (value === null || value === undefined || value === "") return fallback;
   if (typeof value === "number") return value.toLocaleString();
@@ -13,9 +15,10 @@ export function formatCurrency(value: unknown, currency = "GHS"): string {
   return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
-export function pickSummaryValue(summary: Record<string, unknown>, keys: string[], fallback = "—") {
+export function pickSummaryValue(summary: Record<string, unknown> | null | undefined, keys: string[], fallback = "—") {
+  const source = asRecord(summary);
   for (const key of keys) {
-    const value = summary[key];
+    const value = source[key];
     if (value !== undefined && value !== null && value !== "") {
       return formatApiValue(value);
     }
@@ -23,9 +26,10 @@ export function pickSummaryValue(summary: Record<string, unknown>, keys: string[
   return fallback;
 }
 
-export function pickSummaryCurrency(summary: Record<string, unknown>, keys: string[], fallback = "—") {
+export function pickSummaryCurrency(summary: Record<string, unknown> | null | undefined, keys: string[], fallback = "—") {
+  const source = asRecord(summary);
   for (const key of keys) {
-    const value = summary[key];
+    const value = source[key];
     if (value !== undefined && value !== null && value !== "") {
       return formatCurrency(value);
     }
