@@ -4,8 +4,13 @@ import { Download, FileText, HandCoins, HeartHandshake } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useApiData } from "@/hooks/use-api-data";
+import { useMemberProfileFields } from "@/hooks/use-member-profile-fields";
+import { fetchGivingRecords } from "@/lib/api/giving";
+import { mapMemberGivingHistoryItem } from "@/lib/api/mappers";
 import { buildReceiptId, receiptRecords, type ReceiptCategory, type ReceiptPaymentMethod } from "@/lib/mock-receipts";
 import { cn } from "@/lib/utils";
 
@@ -17,9 +22,9 @@ type GivingHistoryItem = {
   id: string;
   receiptId: string | null;
   financeReference: string | null;
-  category: GivingCategory;
+  category: GivingCategory | string;
   amount: number;
-  method: PaymentMethod;
+  method: PaymentMethod | string;
   dateISO: string;
   status: "Completed" | "Pending";
 };
@@ -127,15 +132,26 @@ function isSameYear(iso: string, ref: Date) {
 }
 
 export function MemberGivingPageView() {
+  const { user } = useMemberProfileFields();
   const now = useMemo(() => new Date(), []);
   const [selectedCategory, setSelectedCategory] = useState<GivingCategory>("Tithe");
   const [amountInput, setAmountInput] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Mobile Money");
   const [note, setNote] = useState("");
-  const [history, setHistory] = useState<GivingHistoryItem[]>(initialHistory);
+  const [localHistory, setLocalHistory] = useState<GivingHistoryItem[]>([]);
+  const recordsQuery = useApiData(
+    "member-giving-records",
+    async () => (await fetchGivingRecords()).map(mapMemberGivingHistoryItem),
+    initialHistory,
+  );
   const [selectedReceiptIds, setSelectedReceiptIds] = useState<Set<string>>(new Set());
   const [previewReceiptId, setPreviewReceiptId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
+
+  const history = useMemo(() => {
+    const base = recordsQuery.isLive ? recordsQuery.data : initialHistory;
+    return [...localHistory, ...base];
+  }, [localHistory, recordsQuery.data, recordsQuery.isLive]);
 
   const parsedAmount = Number(amountInput);
   const canSubmit = Number.isFinite(parsedAmount) && parsedAmount > 0;
@@ -186,7 +202,7 @@ export function MemberGivingPageView() {
       status: "Completed",
     };
 
-    setHistory((cur) => [nextItem, ...cur]);
+    setLocalHistory((cur) => [nextItem, ...cur]);
     setAmountInput("");
     setNote("");
     setFeedback("Thank you. In a live workspace this would open secure payment; here your gift is recorded for preview only.");
@@ -208,9 +224,9 @@ export function MemberGivingPageView() {
       amount: fromHistory.amount,
       category: fromHistory.category,
       paymentMethod: fromHistory.method,
-      createdBy: "Member Portal · John Doe",
+      createdBy: `Member Portal · ${user.name}`,
     };
-  }, [history, previewReceiptId, receiptIndex]);
+  }, [history, previewReceiptId, receiptIndex, user.name]);
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-5 lg:p-6">
@@ -235,6 +251,13 @@ export function MemberGivingPageView() {
           </p>
         </div>
       </section>
+
+      <ApiConnectionNotice
+        isLoading={recordsQuery.isLoading}
+        error={recordsQuery.error}
+        isLive={recordsQuery.isLive}
+        fallbackLabel="Giving records are shown from finance transactions until dedicated giving endpoints are available."
+      />
 
       <section className="shepherd-fade-in">
         <Card className="border-white/10 bg-white/[0.04] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">

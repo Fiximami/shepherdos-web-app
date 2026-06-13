@@ -20,7 +20,7 @@ import Link from "next/link";
 import type { ComponentType } from "react";
 
 import { routes } from "@/lib/constants/navigation";
-import { mockUser } from "@/lib/mock-user";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 
 type MemberSidebarItem = {
@@ -52,6 +52,8 @@ type SidebarProps = {
 };
 
 export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
+  const currentUser = useCurrentUser();
+
   return (
     <aside
       className={cn(
@@ -109,8 +111,8 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
             <NotebookPen className="size-3.5" aria-hidden />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-xs font-semibold text-white">Welcome, {mockUser.name.split(" ")[0]}</p>
-            <p className="truncate text-[11px] text-gray-400">{mockUser.churchName} member</p>
+            <p className="truncate text-xs font-semibold text-white">Welcome, {currentUser.name.split(" ")[0]}</p>
+            <p className="truncate text-[11px] text-gray-400">{currentUser.churchName} member</p>
           </div>
         </div>
       </div>

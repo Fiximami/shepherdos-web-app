@@ -6,11 +6,16 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { Button } from "@/components/ui/button";
+import { useApiData } from "@/hooks/use-api-data";
+import { fetchAttendanceSessions, fetchAttendanceSummary } from "@/lib/api/attendance";
+import { pickSummaryValue } from "@/lib/api/formatters";
+import { mapApiAttendanceSession, type SessionRow } from "@/lib/api/mappers";
 import { readSmartAttendanceRecords } from "@/lib/smart-attendance-storage";
 import { cn } from "@/lib/utils";
 
-const summaryCards = [
+const fallbackSummaryCardItems = [
   { label: "Attendance Today", value: "912", note: "Across recorded services" },
   { label: "This Week", value: "3,441", note: "Cumulative participation" },
   { label: "This Month", value: "12,860", note: "All branches combined" },
@@ -18,18 +23,7 @@ const summaryCards = [
   { label: "Absentees Needing Follow-up", value: "27", note: "Repeated absence pattern" },
 ] as const;
 
-type SessionRow = {
-  id: string;
-  service: string;
-  date: string;
-  branch: string;
-  department: string;
-  totalPresent: number;
-  firstTimers: number;
-  recordedBy: string;
-};
-
-const sessions: SessionRow[] = [
+const fallbackSessions: SessionRow[] = [
   {
     id: "s-1",
     service: "Sunday Celebration",
@@ -157,6 +151,44 @@ export default function AdminAttendancePage() {
   const [departmentFilter, setDepartmentFilter] = useState("All Departments");
   const [liveSmartRows, setLiveSmartRows] = useState<SmartAttendanceRow[]>([]);
 
+  const sessionsQuery = useApiData(
+    "admin-attendance-sessions",
+    async () => (await fetchAttendanceSessions()).map(mapApiAttendanceSession),
+    fallbackSessions,
+  );
+  const summaryQuery = useApiData("admin-attendance-summary", fetchAttendanceSummary, {});
+
+  const sessions = sessionsQuery.data;
+  const summaryCardItems = summaryQuery.isLive
+    ? [
+        {
+          label: "Attendance Today",
+          value: pickSummaryValue(summaryQuery.data, ["today", "attendanceToday", "todayCount"]),
+          note: "Across recorded services",
+        },
+        {
+          label: "This Week",
+          value: pickSummaryValue(summaryQuery.data, ["thisWeek", "weekCount"]),
+          note: "Cumulative participation",
+        },
+        {
+          label: "This Month",
+          value: pickSummaryValue(summaryQuery.data, ["thisMonth", "monthCount"]),
+          note: "All branches combined",
+        },
+        {
+          label: "First-Time Guests",
+          value: pickSummaryValue(summaryQuery.data, ["firstTimers", "firstTimeGuests"]),
+          note: "This month",
+        },
+        {
+          label: "Absentees Needing Follow-up",
+          value: pickSummaryValue(summaryQuery.data, ["absenteesNeedingFollowUp", "followUpNeeded"]),
+          note: "Repeated absence pattern",
+        },
+      ]
+    : fallbackSummaryCardItems;
+
   const sessionRows =
     departmentFilter === "All Departments" ? sessions : sessions.filter((row) => row.department === departmentFilter);
 
@@ -211,6 +243,12 @@ export default function AdminAttendancePage() {
 
   return (
     <main className="space-y-5">
+      <ApiConnectionNotice
+        isLoading={sessionsQuery.isLoading || summaryQuery.isLoading}
+        error={sessionsQuery.error ?? summaryQuery.error}
+        isLive={sessionsQuery.isLive || summaryQuery.isLive}
+      />
+
       <AdminPageHeader
         title="Attendance Management"
         description="Track participation patterns and identify people who may need care."
@@ -259,7 +297,7 @@ export default function AdminAttendancePage() {
       </AdminCard>
 
       <section className="shepherd-fade-in grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {summaryCards.map((card) => (
+        {summaryCardItems.map((card) => (
           <AdminCard key={card.label} title={card.label}>
             <p className="text-xl font-semibold text-white">{card.value}</p>
             <p className="mt-1 text-xs text-gray-400">{card.note}</p>

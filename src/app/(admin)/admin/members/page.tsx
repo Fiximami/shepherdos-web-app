@@ -5,25 +5,18 @@ import { useMemo, useState } from "react";
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { Button } from "@/components/ui/button";
+import { useApiData } from "@/hooks/use-api-data";
+import { pickSummaryValue } from "@/lib/api/formatters";
+import { mapApiMember, type MemberRow } from "@/lib/api/mappers";
+import { fetchMembers, fetchMembersSummary } from "@/lib/api/members";
 import { hasAnyPermission, hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 type Segment = "All Members" | "First-Timers" | "New Converts" | "Workers" | "Inactive" | "Follow-up Needed";
 
-type MemberRow = {
-  id: string;
-  name: string;
-  memberId: string;
-  phone: string;
-  branch: string;
-  ministry: string;
-  department: string;
-  status: "Active" | "First-Timer" | "New Convert" | "Worker" | "Inactive" | "Follow-up Needed";
-  lastSeen: string;
-};
-
-const members: MemberRow[] = [
+const fallbackMembers: MemberRow[] = [
   { id: "m-1", name: "Ruth Eze", memberId: "SHP-1044", phone: "+233 24 551 1022", branch: "Main Campus", ministry: "Hospitality", department: "Ushering Team", status: "Worker", lastSeen: "Sun, Apr 27" },
   { id: "m-2", name: "Samuel Okoro", memberId: "SHP-1172", phone: "+233 20 831 0031", branch: "North Branch", ministry: "Youth Group", department: "Youth Ministry", status: "Active", lastSeen: "Sun, Apr 27" },
   { id: "m-3", name: "Miriam Osei", memberId: "SHP-1205", phone: "+233 24 190 5532", branch: "Main Campus", ministry: "Choir", department: "Choir", status: "Follow-up Needed", lastSeen: "3 weeks ago" },
@@ -42,6 +35,14 @@ const segmentToStatuses: Record<Exclude<Segment, "All Members">, MemberRow["stat
   "Follow-up Needed": ["Follow-up Needed"],
 };
 
+const fallbackSummaryCards = [
+  ["Total Members", "1,248"],
+  ["First-Timers", "32"],
+  ["New Converts", "14"],
+  ["Workers / Volunteers", "286"],
+  ["Needing Follow-up", "47"],
+] as const;
+
 export default function AdminMembersPage() {
   const canCreateMembers = hasPermission("members:create");
   const canUpdateMembers = hasPermission("members:update");
@@ -53,6 +54,24 @@ export default function AdminMembersPage() {
   const [departmentFilter, setDepartmentFilter] = useState("All Departments");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [feedback, setFeedback] = useState("");
+
+  const membersQuery = useApiData(
+    "admin-members",
+    async () => (await fetchMembers()).map(mapApiMember),
+    fallbackMembers,
+  );
+  const summaryQuery = useApiData("admin-members-summary", fetchMembersSummary, {});
+
+  const members = membersQuery.data;
+  const summaryCards = summaryQuery.isLive
+    ? [
+        ["Total Members", pickSummaryValue(summaryQuery.data, ["totalMembers", "total", "count"])],
+        ["First-Timers", pickSummaryValue(summaryQuery.data, ["firstTimers", "firstTimerCount"])],
+        ["New Converts", pickSummaryValue(summaryQuery.data, ["newConverts", "newConvertCount"])],
+        ["Workers / Volunteers", pickSummaryValue(summaryQuery.data, ["workers", "workerCount", "volunteers"])],
+        ["Needing Follow-up", pickSummaryValue(summaryQuery.data, ["followUpNeeded", "needingFollowUp"])],
+      ]
+    : fallbackSummaryCards;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -72,10 +91,16 @@ export default function AdminMembersPage() {
         member.phone.toLowerCase().includes(q)
       );
     });
-  }, [activeSegment, branchFilter, departmentFilter, ministryFilter, search, statusFilter]);
+  }, [activeSegment, branchFilter, departmentFilter, members, ministryFilter, search, statusFilter]);
 
   return (
     <main className="space-y-5">
+      <ApiConnectionNotice
+        isLoading={membersQuery.isLoading || summaryQuery.isLoading}
+        error={membersQuery.error ?? summaryQuery.error}
+        isLive={membersQuery.isLive || summaryQuery.isLive}
+      />
+
       <AdminPageHeader
         title="Members Management"
         description="Organize people records with care, clarity, and pastoral visibility."
@@ -110,13 +135,7 @@ export default function AdminMembersPage() {
       ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {[
-          ["Total Members", "1,248"],
-          ["First-Timers", "32"],
-          ["New Converts", "14"],
-          ["Workers / Volunteers", "286"],
-          ["Needing Follow-up", "47"],
-        ].map(([label, value]) => (
+        {summaryCards.map(([label, value]) => (
           <AdminCard key={label} title={label} className="shepherd-fade-in">
             <p className="text-xl font-semibold text-white">{value}</p>
           </AdminCard>

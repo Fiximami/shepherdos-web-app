@@ -10,7 +10,7 @@ import { NotificationsMenu } from "@/components/dashboard/layout/notifications-m
 import { QuickActions } from "@/components/dashboard/layout/quick-actions";
 import { UserMenu } from "@/components/dashboard/layout/user-menu";
 import { Button } from "@/components/ui/button";
-import { mockUser } from "@/lib/mock-user";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 
 type TopbarProps = {
@@ -27,9 +27,10 @@ export function Topbar({
   className,
 }: TopbarProps) {
   const [logoMissing, setLogoMissing] = useState(false);
+  const currentUser = useCurrentUser();
 
-  const role = mockUser.role;
-  const permissions = mockUser.permissions;
+  const role = currentUser.role;
+  const permissions = currentUser.permissions;
   const canAccessLeadershipConsole = useMemo(
     () =>
       showLeadershipConsole &&
@@ -60,10 +61,10 @@ export function Topbar({
         <div className="min-w-[220px]">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/12 bg-white/[0.08] p-1">
-            {mockUser.churchLogo && !logoMissing ? (
+            {currentUser.churchLogo && !logoMissing ? (
               <Image
-                src={mockUser.churchLogo}
-                alt={`${mockUser.churchName} logo`}
+                src={currentUser.churchLogo}
+                alt={`${currentUser.churchName} logo`}
                 fill
                 sizes="40px"
                 className="object-contain"
@@ -71,7 +72,7 @@ export function Topbar({
               />
             ) : (
               <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">
-                {mockUser.churchName
+                {currentUser.churchName
                   .split(" ")
                   .map((word) => word[0])
                   .join("")
@@ -82,7 +83,7 @@ export function Topbar({
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold tracking-tight text-white">
-                {mockUser.churchName}
+                {currentUser.churchName}
               </p>
               <p className="truncate text-xs text-gray-400">
                 {title} · ShepherdOS workspace
@@ -115,10 +116,10 @@ export function Topbar({
 
           <NotificationsMenu role={role} />
           <UserMenu
-            name={mockUser.name}
+            name={currentUser.name}
             role={role}
-            roleLabel={mockUser.roleLabel}
-            workspace={mockUser.churchName}
+            roleLabel={currentUser.roleLabel}
+            workspace={currentUser.churchName}
           />
         </div>
       </div>

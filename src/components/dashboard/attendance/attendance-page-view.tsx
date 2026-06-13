@@ -13,14 +13,23 @@ import {
   Sparkles,
   UserRoundPlus,
 } from "lucide-react";
+import { useMemo } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SummaryCard } from "@/components/dashboard/shared/summary-card";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useApiData } from "@/hooks/use-api-data";
+import { fetchAttendanceSessions, fetchAttendanceSummary } from "@/lib/api/attendance";
+import { pickSummaryValue } from "@/lib/api/formatters";
+import {
+  mapMemberAttendanceSessionRow,
+  type MemberAttendanceSessionRow,
+} from "@/lib/api/mappers";
 
-const trendData = [
+const fallbackTrendData = [
   { label: "Jan", total: 298, guests: 14 },
   { label: "Feb", total: 312, guests: 18 },
   { label: "Mar", total: 305, guests: 12 },
@@ -29,15 +38,7 @@ const trendData = [
   { label: "Jun", total: 336, guests: 16 },
 ];
 
-type SessionRow = {
-  sessionName: string;
-  date: string;
-  branch: string;
-  attendanceCount: number;
-  firstTimers: number;
-};
-
-const sessionsData: SessionRow[] = [
+const fallbackSessions: MemberAttendanceSessionRow[] = [
   {
     sessionName: "Sunday Celebration",
     date: "2026-04-20",
@@ -81,18 +82,42 @@ const insightLines = [
   "North Branch midweek numbers dipped once; pairing a leader visit with a simple outreach reminder usually helps the rhythm return.",
 ];
 
-const columns: ColumnDef<SessionRow>[] = [
+function buildTrendFromSessions(sessions: MemberAttendanceSessionRow[]) {
+  const buckets = new Map<string, { total: number; guests: number }>();
+
+  for (const session of sessions) {
+    const parsed = new Date(session.date);
+    if (Number.isNaN(parsed.getTime())) continue;
+    const label = parsed.toLocaleDateString("en-GB", { month: "short" });
+    const current = buckets.get(label) ?? { total: 0, guests: 0 };
+    buckets.set(label, {
+      total: current.total + session.attendanceCount,
+      guests: current.guests + session.firstTimers,
+    });
+  }
+
+  return Array.from(buckets.entries()).map(([label, values]) => ({
+    label,
+    total: values.total,
+    guests: values.guests,
+  }));
+}
+
+const columns: ColumnDef<MemberAttendanceSessionRow>[] = [
   { header: "Session Name", accessorKey: "sessionName" },
   {
     header: "Date",
     accessorKey: "date",
-    cell: ({ row }) =>
-      new Date(row.original.date).toLocaleDateString("en-GB", {
+    cell: ({ row }) => {
+      const parsed = new Date(row.original.date);
+      if (Number.isNaN(parsed.getTime())) return row.original.date;
+      return parsed.toLocaleDateString("en-GB", {
         weekday: "short",
         day: "numeric",
         month: "short",
         year: "numeric",
-      }),
+      });
+    },
   },
   { header: "Branch", accessorKey: "branch" },
   { header: "Attendance Count", accessorKey: "attendanceCount" },
@@ -109,6 +134,50 @@ const columns: ColumnDef<SessionRow>[] = [
 ];
 
 export function AttendancePageView() {
+  const sessionsQuery = useApiData(
+    "member-attendance-sessions",
+    async () => (await fetchAttendanceSessions()).map(mapMemberAttendanceSessionRow),
+    fallbackSessions,
+  );
+  const summaryQuery = useApiData("member-attendance-summary", fetchAttendanceSummary, {});
+
+  const sessionsData = sessionsQuery.data;
+  const trendData = useMemo(() => {
+    if (!sessionsQuery.isLive) return fallbackTrendData;
+    const built = buildTrendFromSessions(sessionsData);
+    return built.length > 0 ? built : fallbackTrendData;
+  }, [sessionsData, sessionsQuery.isLive]);
+
+  const summaryCards = useMemo(
+    () => [
+      {
+        label: "Attendance Today",
+        value: pickSummaryValue(summaryQuery.data, ["today", "attendanceToday", "todayCount"], "284"),
+        detail: "Across recorded services so far",
+        icon: CalendarCheck2,
+      },
+      {
+        label: "This Week",
+        value: pickSummaryValue(summaryQuery.data, ["thisWeek", "weekCount"], "947"),
+        detail: "Including midweek and youth",
+        icon: CalendarDays,
+      },
+      {
+        label: "This Month",
+        value: pickSummaryValue(summaryQuery.data, ["thisMonth", "monthCount"], "3,892"),
+        detail: "Steady pace compared to last month",
+        icon: Sparkles,
+      },
+      {
+        label: "First-Time Guests",
+        value: pickSummaryValue(summaryQuery.data, ["firstTimers", "firstTimeGuests"], "22"),
+        detail: "Invited into follow-up this month",
+        icon: UserRoundPlus,
+      },
+    ],
+    [summaryQuery.data],
+  );
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: sessionsData,
@@ -135,31 +204,22 @@ export function AttendancePageView() {
         }
       />
 
+      <ApiConnectionNotice
+        isLoading={sessionsQuery.isLoading || summaryQuery.isLoading}
+        error={sessionsQuery.error ?? summaryQuery.error}
+        isLive={sessionsQuery.isLive || summaryQuery.isLive}
+      />
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          label="Attendance Today"
-          value="284"
-          detail="Across recorded services so far"
-          icon={CalendarCheck2}
-        />
-        <SummaryCard
-          label="This Week"
-          value="947"
-          detail="Including midweek and youth"
-          icon={CalendarDays}
-        />
-        <SummaryCard
-          label="This Month"
-          value="3,892"
-          detail="Steady pace compared to last month"
-          icon={Sparkles}
-        />
-        <SummaryCard
-          label="First-Time Guests"
-          value="22"
-          detail="Invited into follow-up this month"
-          icon={UserRoundPlus}
-        />
+        {summaryCards.map((card) => (
+          <SummaryCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            detail={card.detail}
+            icon={card.icon}
+          />
+        ))}
       </section>
 
       <section className="mt-6">

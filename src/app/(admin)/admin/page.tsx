@@ -21,7 +21,11 @@ import {
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { Button } from "@/components/ui/button";
+import { useApiData } from "@/hooks/use-api-data";
+import { fetchLeadershipDashboardSummary } from "@/lib/api/dashboard";
+import { pickSummaryCurrency, pickSummaryValue } from "@/lib/api/formatters";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -150,6 +154,45 @@ function insightSeverityStyle(severity: InsightSeverity) {
 
 export default function AdminPage() {
   const [insightFilter, setInsightFilter] = useState<InsightFilter>("all");
+  const dashboardQuery = useApiData("admin-dashboard-summary", fetchLeadershipDashboardSummary, {
+    members: {},
+    attendance: {},
+    finance: {},
+  });
+
+  const leadershipMetricValues = dashboardQuery.isLive
+    ? [
+        {
+          label: "Active Members",
+          value: pickSummaryValue(dashboardQuery.data.members, ["activeMembers", "totalMembers", "total"]),
+          note: "Live member summary from API",
+          icon: Users,
+        },
+        {
+          label: "Attendance This Week",
+          value: pickSummaryValue(dashboardQuery.data.attendance, ["thisWeek", "weekCount", "attendanceThisWeek"]),
+          note: "Live attendance summary from API",
+          icon: ChartNoAxesCombined,
+        },
+        {
+          label: "Giving This Month",
+          value: pickSummaryCurrency(dashboardQuery.data.finance, [
+            "givingThisMonth",
+            "monthTotal",
+            "totalIncome",
+            "total",
+          ]),
+          note: "Live finance summary from API",
+          icon: HandCoins,
+        },
+        {
+          label: "Pending Follow-ups",
+          value: pickSummaryValue(dashboardQuery.data.members, ["pendingFollowUps", "followUpNeeded", "needingFollowUp"]),
+          note: "Care touchpoints due this week",
+          icon: Clock3,
+        },
+      ]
+    : leadershipMetrics;
 
   const visibleInsights = useMemo(() => {
     if (insightFilter === "urgent") return shepherdInsights.filter((i) => i.severity === "urgent");
@@ -159,6 +202,12 @@ export default function AdminPage() {
 
   return (
     <main className="space-y-5">
+      <ApiConnectionNotice
+        isLoading={dashboardQuery.isLoading}
+        error={dashboardQuery.error}
+        isLive={dashboardQuery.isLive}
+      />
+
       <section className="shepherd-fade-in relative overflow-hidden rounded-2xl border border-white/10 bg-[#10263a]/75 p-5 shadow-[0_24px_52px_-40px_rgba(0,0,0,0.78)] backdrop-blur-xl sm:p-6">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:36px_36px] opacity-[0.18]" />
         <div className="pointer-events-none absolute -left-10 top-0 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.16)_0%,rgba(250,204,21,0)_72%)]" />
@@ -188,7 +237,7 @@ export default function AdminPage() {
       </section>
 
       <section className="shepherd-fade-in grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {leadershipMetrics.map((metric) => (
+        {leadershipMetricValues.map((metric) => (
           <Card
             key={metric.label}
             className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)] transition-[transform,border-color,box-shadow] duration-200 ease-out hover:-translate-y-[2px] hover:border-white/20 hover:shadow-[0_22px_40px_-30px_rgba(251,191,36,0.35)]"

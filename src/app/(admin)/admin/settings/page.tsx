@@ -18,6 +18,11 @@ import { useState } from "react";
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { useApiData } from "@/hooks/use-api-data";
+import { formatApiValue } from "@/lib/api/formatters";
+import { fetchChurchSettings, fetchSettings } from "@/lib/api/settings";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 
 const settingCategories = [
@@ -72,9 +77,26 @@ const brandColors = [
 
 export default function AdminSettingsPage() {
   const [feedback, setFeedback] = useState("");
+  const currentUser = useCurrentUser();
+  const settingsQuery = useApiData("admin-settings", fetchSettings, {});
+  const churchSettingsQuery = useApiData("admin-settings-church", fetchChurchSettings, {});
+
+  const churchName =
+    formatApiValue(
+      churchSettingsQuery.data.name ??
+        churchSettingsQuery.data.churchName ??
+        settingsQuery.data.churchName,
+      currentUser.churchName,
+    ) || currentUser.churchName;
 
   return (
     <main className="space-y-5">
+      <ApiConnectionNotice
+        isLoading={settingsQuery.isLoading || churchSettingsQuery.isLoading}
+        error={settingsQuery.error ?? churchSettingsQuery.error}
+        isLive={settingsQuery.isLive || churchSettingsQuery.isLive}
+      />
+
       <AdminPageHeader
         title="System Settings"
         description="Configure your church workspace, roles, branding, and operating structure. Changes here affect how leaders and members experience ShepherdOS."
@@ -121,7 +143,7 @@ export default function AdminSettingsPage() {
               <input
                 id="church-name"
                 readOnly
-                defaultValue="Shepherd Community Church"
+                defaultValue={churchName}
                 className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white placeholder:text-slate-600"
               />
               <p className="mt-1 text-[11px] text-slate-600">Shown on invitations, receipts, and the member home screen.</p>

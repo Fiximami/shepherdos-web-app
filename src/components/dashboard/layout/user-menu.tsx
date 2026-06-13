@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { routes } from "@/lib/constants/navigation";
+import { useAuth } from "@/providers/auth-provider";
 
 const roleLabels: Record<string, string> = {
   member: "Member",
@@ -23,8 +24,8 @@ type UserMenuProps = {
 };
 
 export function UserMenu({ name, role, roleLabel, workspace }: UserMenuProps) {
+  const { signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [feedback, setFeedback] = useState("");
 
   const resolvedRoleLabel = useMemo(
     () => roleLabel ?? roleLabels[role] ?? "Team Member",
@@ -79,17 +80,16 @@ export function UserMenu({ name, role, roleLabel, workspace }: UserMenuProps) {
             </Link>
             <button
               type="button"
-              onClick={() => setFeedback("Logout flow will be connected with authentication.")}
+              onClick={() => {
+                setIsOpen(false);
+                signOut();
+              }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white transition-colors hover:bg-white/[0.08]"
             >
               <LogOut className="size-4 text-gray-300" aria-hidden />
               Logout
             </button>
           </div>
-
-          {feedback ? (
-            <p className="mt-2 rounded-lg bg-white/[0.05] px-3 py-2 text-xs text-gray-300">{feedback}</p>
-          ) : null}
         </div>
       ) : null}
     </div>

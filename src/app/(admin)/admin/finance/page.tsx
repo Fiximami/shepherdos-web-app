@@ -20,12 +20,18 @@ import { useState } from "react";
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { Button } from "@/components/ui/button";
+import { useApiData } from "@/hooks/use-api-data";
+import { fetchAuditLogs } from "@/lib/api/audit-logs";
+import { fetchFinanceSummary, fetchFinanceTransactions } from "@/lib/api/finance";
+import { pickSummaryCurrency, pickSummaryValue } from "@/lib/api/formatters";
+import { mapApiAuditLog, mapApiFinanceTransaction } from "@/lib/api/mappers";
 import { hasAnyPermission, hasPermission } from "@/lib/permissions";
 import { receiptRecords } from "@/lib/mock-receipts";
 import { cn } from "@/lib/utils";
 
-const overviewCards = [
+const fallbackOverviewCards = [
   { label: "Total Tithes", value: "GHS 186,400", note: "Posted to general ledger" },
   { label: "Total Offerings", value: "GHS 52,180", note: "General & special offerings" },
   { label: "Special Donations", value: "GHS 28,940", note: "Designated gifts" },
@@ -435,7 +441,7 @@ const approvalQueue = [
   },
 ] as const;
 
-const auditRows = [
+const fallbackAuditRows = [
   {
     action: "Amount amended",
     transaction: "TX-2026-04160",
@@ -511,8 +517,56 @@ export default function AdminFinancePage() {
   const canAccessFinance = hasAnyPermission(["finance:record", "finance:approve"]);
   const [feedback, setFeedback] = useState("");
 
+  const summaryQuery = useApiData("admin-finance-summary", fetchFinanceSummary, {});
+  const transactionsQuery = useApiData(
+    "admin-finance-transactions",
+    async () => (await fetchFinanceTransactions()).map(mapApiFinanceTransaction),
+    recentIncome,
+  );
+  const auditQuery = useApiData(
+    "admin-audit-logs",
+    async () => (await fetchAuditLogs({ page: 1, limit: 10 })).map(mapApiAuditLog),
+    fallbackAuditRows.map((row, index) => ({
+      id: `audit-${index}`,
+      action: row.action,
+      actor: row.user,
+      entity: row.transaction,
+      timestamp: row.timestamp,
+      details: `${row.previousValue} → ${row.newValue}`,
+    })),
+  );
+
+  const overviewCards = summaryQuery.isLive
+    ? [
+        { label: "Total Tithes", value: pickSummaryCurrency(summaryQuery.data, ["totalTithes", "tithes"]), note: "Posted to general ledger" },
+        { label: "Total Offerings", value: pickSummaryCurrency(summaryQuery.data, ["totalOfferings", "offerings"]), note: "General & special offerings" },
+        { label: "Special Donations", value: pickSummaryCurrency(summaryQuery.data, ["specialDonations", "donations"]), note: "Designated gifts" },
+        { label: "Total Expenses", value: pickSummaryCurrency(summaryQuery.data, ["totalExpenses", "expenses"]), note: "Approved & pending posts" },
+        { label: "Net Balance", value: pickSummaryCurrency(summaryQuery.data, ["netBalance", "balance"]), note: "Income less expenditure (period)" },
+        { label: "Pending Approvals", value: pickSummaryValue(summaryQuery.data, ["pendingApprovals", "pendingCount"]), note: "Income + expense workflows" },
+      ]
+    : fallbackOverviewCards;
+
+  const liveRecentIncome = transactionsQuery.isLive ? transactionsQuery.data : recentIncome;
+  const auditRows = auditQuery.isLive
+    ? auditQuery.data.map((row) => ({
+        action: row.action,
+        transaction: row.entity,
+        user: row.actor,
+        timestamp: row.timestamp,
+        previousValue: row.details.split(" → ")[0] ?? "—",
+        newValue: row.details.split(" → ")[1] ?? row.details,
+      }))
+    : fallbackAuditRows;
+
   return (
     <main className="space-y-5 text-[#e8edf5]">
+      <ApiConnectionNotice
+        isLoading={summaryQuery.isLoading || transactionsQuery.isLoading || auditQuery.isLoading}
+        error={summaryQuery.error ?? transactionsQuery.error ?? auditQuery.error}
+        isLive={summaryQuery.isLive || transactionsQuery.isLive || auditQuery.isLive}
+      />
+
       <AdminPageHeader
         title="Finance Management"
         description="Steward church resources with transparency, accuracy, approvals, and audit-ready reporting."
@@ -637,7 +691,7 @@ export default function AdminFinancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentIncome.map((r) => (
+                  {liveRecentIncome.map((r) => (
                     <tr key={r.id} className="border-t border-white/[0.06]">
                       <td className="px-3 py-2 font-mono text-[11px] text-amber-100/80">{r.receiptId}</td>
                       <td className="px-3 py-2 tabular-nums text-slate-400">

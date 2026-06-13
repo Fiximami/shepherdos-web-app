@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { routes } from "@/lib/constants/navigation";
-import { mockUser } from "@/lib/mock-user";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -56,7 +56,8 @@ export function DashboardShell({ children }: DashboardShellProps) {
     return pageTitles[pathname] ?? "Workspace";
   }, [pathname]);
 
-  const showLeadershipConsole = leadershipRoles.has(mockUser.role);
+  const currentUser = useCurrentUser();
+  const showLeadershipConsole = leadershipRoles.has(currentUser.role);
 
   return (
     <div

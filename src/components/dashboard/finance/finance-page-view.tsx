@@ -13,15 +13,21 @@ import {
   HandCoins,
   Receipt,
 } from "lucide-react";
+import { useMemo } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SummaryCard } from "@/components/dashboard/shared/summary-card";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useApiData } from "@/hooks/use-api-data";
+import { fetchFinanceSummary, fetchFinanceTransactions } from "@/lib/api/finance";
+import { formatCurrency, pickSummaryCurrency, pickSummaryValue } from "@/lib/api/formatters";
+import { mapMemberFinanceTransaction, type MemberFinanceTxRow } from "@/lib/api/mappers";
 import { cn } from "@/lib/utils";
 
-const givingTrend = [
+const fallbackGivingTrend = [
   { month: "Jan", giving: 2_450_000 },
   { month: "Feb", giving: 2_620_000 },
   { month: "Mar", giving: 2_510_000 },
@@ -30,17 +36,7 @@ const givingTrend = [
   { month: "Jun", giving: 2_840_000 },
 ];
 
-type TxRow = {
-  reference: string;
-  category: string;
-  member: string;
-  amount: number;
-  paymentMethod: string;
-  date: string;
-  status: "Cleared" | "Pending" | "Review";
-};
-
-const transactions: TxRow[] = [
+const fallbackTransactions: MemberFinanceTxRow[] = [
   {
     reference: "TXN-24089",
     category: "Tithe",
@@ -100,30 +96,51 @@ const pendingApprovals = [
   {
     title: "Welfare disbursement — medical support",
     reference: "APR-118",
-    amount: "₦180,000",
+    amount: "GHS 180,000",
     note: "Awaiting second signature from treasurer.",
   },
   {
     title: "Youth camp vendor deposit",
     reference: "APR-122",
-    amount: "₦350,000",
+    amount: "GHS 350,000",
     note: "Receipt attached; ministry lead to confirm headcount.",
   },
   {
     title: "Building maintenance invoice",
     reference: "APR-125",
-    amount: "₦92,500",
+    amount: "GHS 92,500",
     note: "Compare against agreed vendor quote before release.",
   },
 ];
 
-const maxCategory = Math.max(...categoryBreakdown.map((c) => c.amount));
-
-function formatNaira(value: number) {
-  return `₦${value.toLocaleString("en-NG")}`;
+function formatDisplayAmount(value: number) {
+  return formatCurrency(value);
 }
 
-const columns: ColumnDef<TxRow>[] = [
+function buildGivingTrend(transactions: MemberFinanceTxRow[]) {
+  const buckets = new Map<string, number>();
+
+  for (const transaction of transactions) {
+    const parsed = new Date(transaction.date);
+    if (Number.isNaN(parsed.getTime())) continue;
+    const month = parsed.toLocaleDateString("en-GB", { month: "short" });
+    buckets.set(month, (buckets.get(month) ?? 0) + transaction.amount);
+  }
+
+  return Array.from(buckets.entries()).map(([month, giving]) => ({ month, giving }));
+}
+
+function buildCategoryBreakdown(transactions: MemberFinanceTxRow[]) {
+  const buckets = new Map<string, number>();
+
+  for (const transaction of transactions) {
+    buckets.set(transaction.category, (buckets.get(transaction.category) ?? 0) + transaction.amount);
+  }
+
+  return Array.from(buckets.entries()).map(([name, amount]) => ({ name, amount }));
+}
+
+const columns: ColumnDef<MemberFinanceTxRow>[] = [
   { header: "Reference", accessorKey: "reference" },
   { header: "Category", accessorKey: "category" },
   { header: "Member", accessorKey: "member" },
@@ -132,7 +149,7 @@ const columns: ColumnDef<TxRow>[] = [
     accessorKey: "amount",
     cell: ({ row }) => (
       <span className="font-medium tabular-nums text-foreground">
-        {formatNaira(row.original.amount)}
+        {formatDisplayAmount(row.original.amount)}
       </span>
     ),
   },
@@ -140,12 +157,15 @@ const columns: ColumnDef<TxRow>[] = [
   {
     header: "Date",
     accessorKey: "date",
-    cell: ({ row }) =>
-      new Date(row.original.date).toLocaleDateString("en-GB", {
+    cell: ({ row }) => {
+      const parsed = new Date(row.original.date);
+      if (Number.isNaN(parsed.getTime())) return row.original.date;
+      return parsed.toLocaleDateString("en-GB", {
         day: "numeric",
         month: "short",
         year: "numeric",
-      }),
+      });
+    },
   },
   {
     header: "Status",
@@ -169,6 +189,58 @@ const columns: ColumnDef<TxRow>[] = [
 ];
 
 export function FinancePageView() {
+  const summaryQuery = useApiData("member-finance-summary", fetchFinanceSummary, {});
+  const transactionsQuery = useApiData(
+    "member-finance-transactions",
+    async () => (await fetchFinanceTransactions()).map(mapMemberFinanceTransaction),
+    fallbackTransactions,
+  );
+
+  const transactions = transactionsQuery.data;
+  const givingTrend = useMemo(() => {
+    if (!transactionsQuery.isLive) return fallbackGivingTrend;
+    const built = buildGivingTrend(transactions);
+    return built.length > 0 ? built : fallbackGivingTrend;
+  }, [transactions, transactionsQuery.isLive]);
+
+  const liveCategoryBreakdown = useMemo(() => {
+    if (!transactionsQuery.isLive) return [...categoryBreakdown];
+    const built = buildCategoryBreakdown(transactions);
+    return built.length > 0 ? built : [...categoryBreakdown];
+  }, [transactions, transactionsQuery.isLive]);
+
+  const maxCategory = Math.max(...liveCategoryBreakdown.map((c) => c.amount), 1);
+
+  const summaryCards = useMemo(
+    () => [
+      {
+        label: "Total Giving This Month",
+        value: pickSummaryCurrency(summaryQuery.data, ["givingThisMonth", "totalIncome", "monthTotal"], "GHS 0"),
+        detail: "Faithful generosity across branches",
+        icon: HandCoins,
+      },
+      {
+        label: "Total Expenses This Month",
+        value: pickSummaryCurrency(summaryQuery.data, ["totalExpenses", "expenses"], "GHS 0"),
+        detail: "Aligned to approved ministry lines",
+        icon: Receipt,
+      },
+      {
+        label: "Pending Approvals",
+        value: pickSummaryValue(summaryQuery.data, ["pendingApprovals", "pendingCount"], "0"),
+        detail: "Waiting on review or second signature",
+        icon: ClipboardCheck,
+      },
+      {
+        label: "Budget Health",
+        value: pickSummaryValue(summaryQuery.data, ["budgetHealth", "netBalanceStatus"], "On track"),
+        detail: pickSummaryValue(summaryQuery.data, ["budgetNote"], "Giving and expenses overview"),
+        icon: Activity,
+      },
+    ],
+    [summaryQuery.data],
+  );
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: transactions,
@@ -195,31 +267,22 @@ export function FinancePageView() {
         }
       />
 
+      <ApiConnectionNotice
+        isLoading={summaryQuery.isLoading || transactionsQuery.isLoading}
+        error={summaryQuery.error ?? transactionsQuery.error}
+        isLive={summaryQuery.isLive || transactionsQuery.isLive}
+      />
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          label="Total Giving This Month"
-          value="₦2.84M"
-          detail="Faithful generosity across branches"
-          icon={HandCoins}
-        />
-        <SummaryCard
-          label="Total Expenses This Month"
-          value="₦1.12M"
-          detail="Aligned to approved ministry lines"
-          icon={Receipt}
-        />
-        <SummaryCard
-          label="Pending Approvals"
-          value="3"
-          detail="Waiting on review or second signature"
-          icon={ClipboardCheck}
-        />
-        <SummaryCard
-          label="Budget Health"
-          value="On track"
-          detail="Giving ahead of plan by a modest margin"
-          icon={Activity}
-        />
+        {summaryCards.map((card) => (
+          <SummaryCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            detail={card.detail}
+            icon={card.icon}
+          />
+        ))}
       </section>
 
       <section className="mt-6">
@@ -245,12 +308,12 @@ export function FinancePageView() {
                   tickLine={false}
                   axisLine={false}
                   width={44}
-                  tickFormatter={(v) => `₦${Number(v) / 1_000_000}M`}
+                  tickFormatter={(v) => formatCurrency(Number(v))}
                 />
                 <Tooltip
                   formatter={(value) => {
                     const n = typeof value === "number" ? value : Number(value ?? 0);
-                    return [formatNaira(n), "Giving"];
+                    return [formatDisplayAmount(n), "Giving"];
                   }}
                   contentStyle={{
                     borderRadius: 12,
@@ -329,12 +392,12 @@ export function FinancePageView() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {categoryBreakdown.map((row) => (
+            {liveCategoryBreakdown.map((row) => (
               <div key={row.name} className="space-y-1.5">
                 <div className="flex items-baseline justify-between gap-3 text-sm">
                   <span className="font-medium text-foreground">{row.name}</span>
                   <span className="tabular-nums text-muted-foreground">
-                    {formatNaira(row.amount)}
+                    {formatDisplayAmount(row.amount)}
                   </span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-muted/60">

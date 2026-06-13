@@ -12,6 +12,7 @@ import {
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SettingsPlaceholderRow } from "@/components/dashboard/settings/settings-section-shell";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import {
   Card,
   CardContent,
@@ -19,24 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { mockUser } from "@/lib/mock-user";
-
-const memberProfile = {
-  memberId: "SHP-1044",
-  email: "john.doe@gracecommunity.org",
-  phone: "+233 24 111 2233",
-  dateOfBirth: "08 March 1993",
-  address: "Airport Residential Area, Accra",
-  joinedDate: "12 September 2019",
-  emergencyContact: "Mary Doe · +233 24 999 1200",
-} as const;
-
-const churchInfo = {
-  branch: "Main Campus",
-  fellowshipUnit: "Family Connect Circle",
-  pastor: "Ps. Emmanuel Boateng",
-  membershipStatus: "Active member",
-} as const;
+import { useMemberProfileFields } from "@/hooks/use-member-profile-fields";
 
 const ministryInvolvement = [
   { team: "Ushering Team", role: "Weekend rotation volunteer", schedule: "2nd & 4th Sundays" },
@@ -51,7 +35,9 @@ const skillsAndInterests = [
 ] as const;
 
 export function ProfilePageView() {
-  const initials = mockUser.name
+  const { user, isAuthenticatedLive, profileQuery, fields } = useMemberProfileFields();
+
+  const initials = user.name
     .split(" ")
     .map((part) => part[0])
     .join("")
@@ -64,6 +50,14 @@ export function ProfilePageView() {
         title="My Profile"
         description="A calm personal space for your identity, church life, and service journey in the ShepherdOS member portal."
       />
+
+      {isAuthenticatedLive ? (
+        <ApiConnectionNotice
+          isLoading={profileQuery.isLoading}
+          error={profileQuery.error}
+          isLive={profileQuery.isLive}
+        />
+      ) : null}
 
       <section className="shepherd-fade-in">
         <Card className="relative overflow-hidden border-white/10 bg-white/[0.06] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">
@@ -78,16 +72,16 @@ export function ProfilePageView() {
             </div>
             <div className="min-w-0 flex-1 space-y-1">
               <h2 className="text-lg font-semibold tracking-tight text-white sm:text-xl">
-                {mockUser.name}
+                {user.name}
               </h2>
               <p className="text-sm text-gray-300">
-                {churchInfo.membershipStatus} · {churchInfo.branch}
+                {fields.membershipStatus} · {fields.branch}
               </p>
               <p className="flex items-center gap-2 text-sm text-gray-300">
                 <Mail className="size-3.5 shrink-0 text-blue-200/90" aria-hidden />
-                {memberProfile.email}
+                {fields.email}
               </p>
-              <p className="text-xs text-gray-400">Member ID · {memberProfile.memberId}</p>
+              <p className="text-xs text-gray-400">Member ID · {fields.memberId}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2">
               <p className="text-[11px] uppercase tracking-wide text-gray-400">Identity</p>
@@ -112,12 +106,12 @@ export function ProfilePageView() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <SettingsPlaceholderRow label="Full name" value={mockUser.name} />
-            <SettingsPlaceholderRow label="Email" value={memberProfile.email} />
-            <SettingsPlaceholderRow label="Phone" value={memberProfile.phone} />
-            <SettingsPlaceholderRow label="Date of birth" value={memberProfile.dateOfBirth} />
-            <SettingsPlaceholderRow label="Address" value={memberProfile.address} />
-            <SettingsPlaceholderRow label="Emergency contact" value={memberProfile.emergencyContact} />
+            <SettingsPlaceholderRow label="Full name" value={user.name} />
+            <SettingsPlaceholderRow label="Email" value={fields.email} />
+            <SettingsPlaceholderRow label="Phone" value={fields.phone} />
+            <SettingsPlaceholderRow label="Date of birth" value={fields.dateOfBirth} />
+            <SettingsPlaceholderRow label="Address" value={fields.address} />
+            <SettingsPlaceholderRow label="Emergency contact" value={fields.emergencyContact} />
           </CardContent>
         </Card>
       </section>
@@ -134,12 +128,12 @@ export function ProfilePageView() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <SettingsPlaceholderRow label="Church name" value={mockUser.churchName} />
-            <SettingsPlaceholderRow label="Home branch" value={churchInfo.branch} />
-            <SettingsPlaceholderRow label="Membership status" value={churchInfo.membershipStatus} />
-            <SettingsPlaceholderRow label="Joined church" value={memberProfile.joinedDate} />
-            <SettingsPlaceholderRow label="Fellowship unit" value={churchInfo.fellowshipUnit} />
-            <SettingsPlaceholderRow label="Pastoral oversight" value={churchInfo.pastor} />
+            <SettingsPlaceholderRow label="Church name" value={user.churchName} />
+            <SettingsPlaceholderRow label="Home branch" value={fields.branch} />
+            <SettingsPlaceholderRow label="Membership status" value={fields.membershipStatus} />
+            <SettingsPlaceholderRow label="Joined church" value={fields.joinedDate} />
+            <SettingsPlaceholderRow label="Fellowship unit" value={fields.fellowshipUnit} />
+            <SettingsPlaceholderRow label="Pastoral oversight" value={fields.pastor} />
           </CardContent>
         </Card>
       </section>

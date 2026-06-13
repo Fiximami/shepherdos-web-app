@@ -3,25 +3,29 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { login } from "@/lib/api/auth";
+import { getDefaultChurchSlug } from "@/lib/api/config";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { enableDemoMode } from "@/lib/api/token-storage";
 import { routes } from "@/lib/constants/navigation";
 import { loginFormSchema, type LoginFormValues } from "@/lib/validations/login";
+import { useAuth } from "@/providers/auth-provider";
 
 type LoginFormProps = {
   className?: string;
 };
 
-async function submitLogin(values: LoginFormValues): Promise<void> {
-  void values;
-  await new Promise((resolve) => setTimeout(resolve, 900));
-  throw new Error("SIGN_IN_NOT_CONFIGURED");
-}
-
 export function LoginForm({ className }: LoginFormProps) {
+  const router = useRouter();
+  const { refresh } = useAuth();
+  const defaultChurchSlug = getDefaultChurchSlug();
+
   const {
     register,
     handleSubmit,
@@ -33,21 +37,31 @@ export function LoginForm({ className }: LoginFormProps) {
     defaultValues: {
       email: "",
       password: "",
+      churchSlug: defaultChurchSlug,
     },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     clearErrors("root");
     try {
-      await submitLogin(values);
+      await login({
+        email: values.email,
+        password: values.password,
+        churchSlug: values.churchSlug.trim(),
+      });
+      await refresh();
+      router.replace(routes.app.dashboard);
     } catch (cause) {
-      const message =
-        cause instanceof Error && cause.message === "SIGN_IN_NOT_CONFIGURED"
-          ? "Sign-in is not connected in this build yet. Your details were not sent anywhere."
-          : "Something went wrong. Please try again in a moment.";
-      setError("root", { message });
+      setError("root", { message: getApiErrorMessage(cause) });
     }
   });
+
+  const continueToDemo = () => {
+    enableDemoMode();
+    void refresh().then(() => {
+      router.push(routes.app.dashboard);
+    });
+  };
 
   return (
     <form className={className} onSubmit={onSubmit} noValidate>
@@ -59,6 +73,28 @@ export function LoginForm({ className }: LoginFormProps) {
           {errors.root.message}
         </div>
       ) : null}
+
+      <div className="space-y-2">
+        <Label htmlFor="churchSlug">Church code</Label>
+        <Input
+          id="churchSlug"
+          autoComplete="organization"
+          placeholder="your-church-slug"
+          aria-invalid={errors.churchSlug ? true : undefined}
+          aria-describedby={errors.churchSlug ? "churchSlug-error" : undefined}
+          className="h-11 rounded-xl px-3.5 text-base md:text-sm"
+          {...register("churchSlug")}
+        />
+        {errors.churchSlug?.message ? (
+          <p id="churchSlug-error" className="text-sm text-destructive">
+            {errors.churchSlug.message}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Use the slug your church administrator provided for sign-in.
+          </p>
+        )}
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
@@ -123,12 +159,18 @@ export function LoginForm({ className }: LoginFormProps) {
         )}
       </Button>
 
-      <Button asChild type="button" variant="outline" size="lg" className="h-11 w-full rounded-xl">
-        <Link href={routes.app.dashboard}>Continue to Demo Dashboard</Link>
+      <Button
+        type="button"
+        variant="outline"
+        size="lg"
+        className="h-11 w-full rounded-xl"
+        onClick={continueToDemo}
+      >
+        Continue to Demo Dashboard
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        Demo access only — authentication will be connected later.
+        Demo access only — uses preview data without calling protected endpoints.
       </p>
     </form>
   );

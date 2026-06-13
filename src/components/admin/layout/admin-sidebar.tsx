@@ -24,7 +24,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { mockUser } from "@/lib/mock-user";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { hasAnyPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +52,7 @@ const adminNav = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const currentUser = useCurrentUser();
   const visibleNav = adminNav.filter((item) => {
     if (!("requiredAny" in item) || !item.requiredAny) return true;
     return hasAnyPermission(item.requiredAny);
@@ -62,10 +63,10 @@ export function AdminSidebar() {
       <div className="border-b border-white/10 px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.06] p-1">
-            {mockUser.churchLogo ? (
+            {currentUser.churchLogo ? (
               <Image
-                src={mockUser.churchLogo}
-                alt={`${mockUser.churchName} logo`}
+                src={currentUser.churchLogo}
+                alt={`${currentUser.churchName} logo`}
                 fill
                 sizes="40px"
                 className="object-contain"
@@ -75,7 +76,7 @@ export function AdminSidebar() {
             )}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{mockUser.churchName}</p>
+            <p className="truncate text-sm font-semibold text-white">{currentUser.churchName}</p>
             <p className="text-xs text-blue-100/80">Leadership Console</p>
           </div>
         </div>

@@ -6,10 +6,15 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recha
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { Button } from "@/components/ui/button";
+import { useApiData } from "@/hooks/use-api-data";
+import { pickSummaryCurrency } from "@/lib/api/formatters";
+import { fetchGivingRecords, fetchGivingSummary } from "@/lib/api/giving";
+import { mapAdminGivingRecord } from "@/lib/api/mappers";
 import { cn } from "@/lib/utils";
 
-const summaryCards = [
+const fallbackSummaryCards = [
   { label: "Tithes", value: "GHS 186,400", note: "This month · recorded giving" },
   { label: "Offerings", value: "GHS 52,180", note: "General and special offerings" },
   { label: "Donations", value: "GHS 28,940", note: "Designated and one-time gifts" },
@@ -37,7 +42,7 @@ type GivingRow = {
   financeSync: "Synced" | "Queued" | "Retry";
 };
 
-const records: GivingRow[] = [
+const fallbackRecords: GivingRow[] = [
   {
     id: "g-1",
     member: "Emmanuel A.",
@@ -125,9 +130,34 @@ function pillSync(s: GivingRow["financeSync"]) {
 
 export default function AdminGivingPage() {
   const [feedback, setFeedback] = useState("");
+  const summaryQuery = useApiData("admin-giving-summary", fetchGivingSummary, {});
+  const recordsQuery = useApiData(
+    "admin-giving-records",
+    async () => (await fetchGivingRecords()).map(mapAdminGivingRecord),
+    fallbackRecords,
+  );
+
+  const summaryCards = summaryQuery.isLive
+    ? [
+        { label: "Tithes", value: pickSummaryCurrency(summaryQuery.data, ["tithes", "titheTotal"]), note: "This month · recorded giving" },
+        { label: "Offerings", value: pickSummaryCurrency(summaryQuery.data, ["offerings", "offeringTotal"]), note: "General and special offerings" },
+        { label: "Donations", value: pickSummaryCurrency(summaryQuery.data, ["donations", "donationTotal"]), note: "Designated and one-time gifts" },
+        { label: "Pledges", value: pickSummaryCurrency(summaryQuery.data, ["pledges", "pledgeTotal"]), note: "Installments received toward commitments" },
+        { label: "Welfare Contributions", value: pickSummaryCurrency(summaryQuery.data, ["welfare", "welfareTotal"]), note: "Care and benevolence pool" },
+      ]
+    : fallbackSummaryCards;
+
+  const records = recordsQuery.data;
 
   return (
     <main className="space-y-5">
+      <ApiConnectionNotice
+        isLoading={summaryQuery.isLoading || recordsQuery.isLoading}
+        error={summaryQuery.error ?? recordsQuery.error}
+        isLive={summaryQuery.isLive || recordsQuery.isLive}
+        fallbackLabel="Giving endpoints are not available yet. Showing preview data and finance fallback where possible."
+      />
+
       <AdminPageHeader
         title="Giving Management"
         description="Monitor member contributions with clarity, gratitude, and stewardship. This view tracks giving categories and member activity—it is not full accounting; recognised totals feed Finance on schedule."
