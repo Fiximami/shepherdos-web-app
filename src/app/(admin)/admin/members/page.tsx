@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { PreviewSectionNotice } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { useApiData } from "@/hooks/use-api-data";
 import { pickSummaryValue } from "@/lib/api/formatters";
@@ -16,14 +17,7 @@ import { cn } from "@/lib/utils";
 
 type Segment = "All Members" | "First-Timers" | "New Converts" | "Workers" | "Inactive" | "Follow-up Needed";
 
-const fallbackMembers: MemberRow[] = [
-  { id: "m-1", name: "Ruth Eze", memberId: "SHP-1044", phone: "+233 24 551 1022", branch: "Main Campus", ministry: "Hospitality", department: "Ushering Team", status: "Worker", lastSeen: "Sun, Apr 27" },
-  { id: "m-2", name: "Samuel Okoro", memberId: "SHP-1172", phone: "+233 20 831 0031", branch: "North Branch", ministry: "Youth Group", department: "Youth Ministry", status: "Active", lastSeen: "Sun, Apr 27" },
-  { id: "m-3", name: "Miriam Osei", memberId: "SHP-1205", phone: "+233 24 190 5532", branch: "Main Campus", ministry: "Choir", department: "Choir", status: "Follow-up Needed", lastSeen: "3 weeks ago" },
-  { id: "m-4", name: "Daniel Kwarteng", memberId: "SHP-1228", phone: "+233 54 665 2211", branch: "South Branch", ministry: "None", department: "Unassigned", status: "First-Timer", lastSeen: "Sun, Apr 27" },
-  { id: "m-5", name: "Deborah Afolabi", memberId: "SHP-1253", phone: "+233 50 116 9402", branch: "Main Campus", ministry: "Prayer Team", department: "Prayer Team", status: "New Convert", lastSeen: "Wed, Apr 24" },
-  { id: "m-6", name: "Moses Bassey", memberId: "SHP-1021", phone: "+233 24 210 4450", branch: "East Branch", ministry: "Ushering", department: "Ushering Team", status: "Inactive", lastSeen: "4 weeks ago" },
-];
+const fallbackMembers: MemberRow[] = [];
 
 const segments: Segment[] = ["All Members", "First-Timers", "New Converts", "Workers", "Inactive", "Follow-up Needed"];
 
@@ -36,11 +30,11 @@ const segmentToStatuses: Record<Exclude<Segment, "All Members">, MemberRow["stat
 };
 
 const fallbackSummaryCards = [
-  ["Total Members", "1,248"],
-  ["First-Timers", "32"],
-  ["New Converts", "14"],
-  ["Workers / Volunteers", "286"],
-  ["Needing Follow-up", "47"],
+  ["Total Members", "—"],
+  ["First-Timers", "—"],
+  ["New Converts", "—"],
+  ["Workers / Volunteers", "—"],
+  ["Needing Follow-up", "—"],
 ] as const;
 
 export default function AdminMembersPage() {
@@ -57,12 +51,15 @@ export default function AdminMembersPage() {
 
   const membersQuery = useApiData(
     "admin-members",
-    async () => (await fetchMembers()).map(mapApiMember),
+    async () => {
+      const rows = await fetchMembers();
+      return Array.isArray(rows) ? rows.map(mapApiMember) : [];
+    },
     fallbackMembers,
   );
   const summaryQuery = useApiData("admin-members-summary", fetchMembersSummary, {});
 
-  const members = membersQuery.data;
+  const members = Array.isArray(membersQuery.data) ? membersQuery.data : fallbackMembers;
   const summaryCards = summaryQuery.isLive
     ? [
         ["Total Members", pickSummaryValue(summaryQuery.data, ["totalMembers", "total", "count"])],
@@ -99,6 +96,7 @@ export default function AdminMembersPage() {
         isLoading={membersQuery.isLoading || summaryQuery.isLoading}
         error={membersQuery.error ?? summaryQuery.error}
         isLive={membersQuery.isLive || summaryQuery.isLive}
+        liveLabel="Showing live data from /members and /members/summary."
       />
 
       <AdminPageHeader
@@ -185,7 +183,17 @@ export default function AdminMembersPage() {
         </div>
       </AdminCard>
 
-      <AdminCard title="Members Table" description="People-centered records with action placeholders for leadership operations.">
+      <AdminCard
+        title="Members Table"
+        description={
+          membersQuery.isLive
+            ? "People-centered records from /members."
+            : "People-centered records — sign in to load /members."
+        }
+      >
+        {!membersQuery.isLive ? (
+          <PreviewSectionNotice message="No member rows loaded yet. Summary cards and table use /members when the API is available." />
+        ) : null}
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full min-w-[980px] border-collapse text-sm">
             <thead className="bg-white/[0.06] text-gray-300">
@@ -196,7 +204,14 @@ export default function AdminMembersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row) => (
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-3 py-8 text-center text-sm text-gray-400">
+                    {membersQuery.isLive ? "No members match the current filters." : "Member records will appear here when /members loads."}
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((row) => (
                 <tr key={row.id} className="border-t border-white/10 bg-white/[0.03]">
                   <td className="px-3 py-2 text-white">{row.name}</td>
                   <td className="px-3 py-2 text-gray-300">{row.memberId}</td>
@@ -225,7 +240,8 @@ export default function AdminMembersPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>

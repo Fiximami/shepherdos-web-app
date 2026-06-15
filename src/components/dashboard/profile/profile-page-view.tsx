@@ -13,6 +13,7 @@ import {
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SettingsPlaceholderRow } from "@/components/dashboard/settings/settings-section-shell";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
 import {
   Card,
   CardContent,
@@ -35,7 +36,7 @@ const skillsAndInterests = [
 ] as const;
 
 export function ProfilePageView() {
-  const { user, isAuthenticatedLive, profileQuery, fields } = useMemberProfileFields();
+  const { user, isAuthenticatedLive, isLinked, profileQuery, fields } = useMemberProfileFields();
 
   const initials = user.name
     .split(" ")
@@ -56,8 +57,11 @@ export function ProfilePageView() {
           isLoading={profileQuery.isLoading}
           error={profileQuery.error}
           isLive={profileQuery.isLive}
+          liveLabel="Showing your member profile from /members/me."
         />
       ) : null}
+
+      {profileQuery.isLive && !isLinked ? <MemberLinkedNotice /> : null}
 
       <section className="shepherd-fade-in">
         <Card className="relative overflow-hidden border-white/10 bg-white/[0.06] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">

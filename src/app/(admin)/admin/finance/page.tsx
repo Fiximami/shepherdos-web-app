@@ -21,6 +21,7 @@ import { useState } from "react";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { PreviewSectionNotice, previewDescription } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { useApiData } from "@/hooks/use-api-data";
 import { fetchAuditLogs } from "@/lib/api/audit-logs";
@@ -32,12 +33,12 @@ import { receiptRecords } from "@/lib/mock-receipts";
 import { cn } from "@/lib/utils";
 
 const fallbackOverviewCards = [
-  { label: "Total Tithes", value: "GHS 186,400", note: "Posted to general ledger" },
-  { label: "Total Offerings", value: "GHS 52,180", note: "General & special offerings" },
-  { label: "Special Donations", value: "GHS 28,940", note: "Designated gifts" },
-  { label: "Total Expenses", value: "GHS 291,180", note: "Approved & pending posts" },
-  { label: "Net Balance", value: "GHS 137,460", note: "Income less expenditure (period)" },
-  { label: "Pending Approvals", value: "9", note: "Income + expense workflows" },
+  { label: "Total Tithes", value: "—", note: "Loads from /finance/summary" },
+  { label: "Total Offerings", value: "—", note: "Loads from /finance/summary" },
+  { label: "Special Donations", value: "—", note: "Loads from /finance/summary" },
+  { label: "Total Expenses", value: "—", note: "Loads from /finance/summary" },
+  { label: "Net Balance", value: "—", note: "Loads from /finance/summary" },
+  { label: "Pending Approvals", value: "—", note: "Loads from /finance/summary" },
 ] as const;
 
 const incomeBreakdown = [
@@ -51,68 +52,16 @@ const incomeBreakdown = [
   { category: "Inventory Sales / Resource Sales", amount: 12_480, pct: 3 },
 ] as const;
 
-const recentIncome = [
-  {
-    id: "in-1",
-    receiptId: "RCPT-2026-004122",
-    date: "2026-04-26",
-    category: "Tithe",
-    amount: "GHS 2,400.00",
-    source: "Member batch · MTN MoMo",
-    reference: "INC-2026-08912",
-    status: "Posted",
-  },
-  {
-    id: "in-2",
-    receiptId: "RCPT-2026-004087",
-    date: "2026-04-26",
-    category: "Offering",
-    amount: "GHS 18,200.00",
-    source: "Sunday service · consolidated",
-    reference: "INC-2026-08908",
-    status: "Posted",
-  },
-  {
-    id: "in-3",
-    receiptId: "RCPT-2026-003995",
-    date: "2026-04-25",
-    category: "Special Donation",
-    amount: "GHS 5,000.00",
-    source: "M. Osei · bank transfer (building)",
-    reference: "INC-2026-08894",
-    status: "Posted",
-  },
-  {
-    id: "in-4",
-    receiptId: "—",
-    date: "2026-04-25",
-    category: "Missions / Outreach",
-    amount: "GHS 1,200.00",
-    source: "Anonymous · card",
-    reference: "INC-2026-08890",
-    status: "Pending L1",
-  },
-  {
-    id: "in-5",
-    receiptId: "INV-RCPT-2026-00124",
-    date: "2026-04-27",
-    category: "Inventory Sales / Resource Sales",
-    amount: "GHS 640.00",
-    source: "Church Store order batch · confirmed cash",
-    reference: "INV-INC-2026-00452",
-    status: "Posted",
-  },
-  {
-    id: "in-6",
-    receiptId: "INV-RCPT-2026-00131",
-    date: "2026-04-28",
-    category: "Inventory Sales / Resource Sales",
-    amount: "GHS 320.00",
-    source: "Church Store · pending cash confirmation",
-    reference: "INV-INC-2026-00470",
-    status: "Pending confirmation",
-  },
-] as const;
+const recentIncome: Array<{
+  id: string;
+  receiptId: string;
+  date: string;
+  category: string;
+  amount: string;
+  source: string;
+  reference: string;
+  status: string;
+}> = [];
 
 const inventoryFinanceSummary = [
   { label: "Inventory Revenue This Month", value: "GHS 12,480", note: "Store sales recognized in finance period." },
@@ -580,6 +529,7 @@ export default function AdminFinancePage() {
         isLoading={summaryQuery.isLoading || transactionsQuery.isLoading || auditQuery.isLoading}
         error={summaryQuery.error ?? transactionsQuery.error ?? auditQuery.error}
         isLive={summaryQuery.isLive || transactionsQuery.isLive || auditQuery.isLive}
+        liveLabel="Live sections use /finance/summary, /finance/transactions, and /audit-logs. Other panels remain preview-only."
       />
 
       <AdminPageHeader
@@ -651,9 +601,10 @@ export default function AdminFinancePage() {
 
       <AdminCard
         title="Inventory sales finance integration"
-        description="Inventory and resource sales are tracked separately from Giving and posted only after payment confirmation."
+        description={previewDescription("Inventory and resource sales are tracked separately from Giving and posted only after payment confirmation.")}
         className="border-amber-500/10 bg-[#080f1c]/95"
       >
+        <PreviewSectionNotice />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {inventoryFinanceSummary.map((row) => (
             <div key={row.label} className="rounded-lg border border-white/[0.08] bg-[#0c1524] px-3 py-3">
@@ -671,12 +622,13 @@ export default function AdminFinancePage() {
 
       <AdminCard
         title="Income tracking"
-        description="Recognised inflows by stewardship category. Member giving posts here under policy—separate from the member Giving screen."
+        description="Recognised inflows by stewardship category. Recent transactions load from /finance/transactions when signed in."
         className="border-white/10 bg-[#080f1c]/95"
       >
         <div className="grid gap-5 lg:grid-cols-[minmax(0,280px)_1fr]">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Category breakdown</p>
+            <PreviewSectionNotice message="Preview only — category breakdown is not available from the current finance API." />
             <ul className="mt-2 space-y-2">
               {incomeBreakdown.map((row) => (
                 <li key={row.category} className="rounded-lg border border-white/[0.06] bg-[#0c1524] px-3 py-2">
@@ -693,7 +645,9 @@ export default function AdminFinancePage() {
             </ul>
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Recent income transactions</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Recent income transactions {transactionsQuery.isLive ? "(live)" : "(preview)"}
+            </p>
             <div className="mt-2 overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
               <table className="w-full min-w-[840px] border-collapse text-sm">
                 <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
@@ -706,7 +660,14 @@ export default function AdminFinancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {liveRecentIncome.map((r) => (
+                  {liveRecentIncome.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
+                        {transactionsQuery.isLive ? "No finance transactions recorded yet." : "Transactions will appear here when /finance/transactions loads."}
+                      </td>
+                    </tr>
+                  ) : (
+                    liveRecentIncome.map((r) => (
                     <tr key={r.id} className="border-t border-white/[0.06]">
                       <td className="px-3 py-2 font-mono text-[11px] text-amber-100/80">{r.receiptId}</td>
                       <td className="px-3 py-2 tabular-nums text-slate-400">
@@ -718,7 +679,8 @@ export default function AdminFinancePage() {
                       <td className="px-3 py-2 font-mono text-xs text-amber-100/80">{r.reference}</td>
                       <td className="px-3 py-2 text-xs text-slate-400">{r.status}</td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -728,9 +690,10 @@ export default function AdminFinancePage() {
 
       <AdminCard
         title="Receipt-to-finance linkage"
-        description="Official receipt fields are mapped to finance references for audit, member support, and reconciliation."
+        description={previewDescription("Official receipt fields are mapped to finance references for audit, member support, and reconciliation.")}
         className="border-white/10 bg-[#080f1c]/95"
       >
+        <PreviewSectionNotice />
         <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
           <table className="w-full min-w-[920px] border-collapse text-sm">
             <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
@@ -888,7 +851,8 @@ export default function AdminFinancePage() {
         </div>
       </AdminCard>
 
-      <AdminCard title="Budget control" description="Departmental envelopes—early warning before overspend harms ministry plans." className="border-amber-500/10 bg-[#080f1c]/95">
+      <AdminCard title="Budget control" description={previewDescription("Departmental envelopes—early warning before overspend harms ministry plans.")} className="border-amber-500/10 bg-[#080f1c]/95">
+        <PreviewSectionNotice />
         <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
           <table className="w-full min-w-[900px] border-collapse text-sm">
             <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
@@ -1120,7 +1084,15 @@ export default function AdminFinancePage() {
         </AdminCard>
       </div>
 
-      <AdminCard title="Audit trail" description="Immutable-style log for accountability—who changed what, when, and from which values." className="border-white/10 bg-[#080f1c]/95">
+      <AdminCard
+        title="Audit trail"
+        description={
+          auditQuery.isLive
+            ? "Live log from /audit-logs — who changed what, when, and from which values."
+            : previewDescription("Immutable-style log for accountability—who changed what, when, and from which values.")
+        }
+        className="border-white/10 bg-[#080f1c]/95"
+      >
         <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0c1524]">
           <table className="w-full min-w-[920px] border-collapse text-sm">
             <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
@@ -1150,9 +1122,10 @@ export default function AdminFinancePage() {
 
       <AdminCard
         title="Finance reports"
-        description="Governance-ready outputs. PDF export remains a placeholder until generation is connected."
+        description={previewDescription("Governance-ready outputs. PDF export remains a placeholder until generation is connected.")}
         className="border-amber-500/10 bg-[#080f1c]/95"
       >
+        <PreviewSectionNotice />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {reportCards.map((r) => (
             <button

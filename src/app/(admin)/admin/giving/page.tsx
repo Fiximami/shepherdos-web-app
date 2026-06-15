@@ -7,6 +7,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recha
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { PreviewSectionNotice, previewDescription } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { useApiData } from "@/hooks/use-api-data";
 import { pickSummaryCurrency } from "@/lib/api/formatters";
@@ -15,11 +16,11 @@ import { mapAdminGivingRecord } from "@/lib/api/mappers";
 import { cn } from "@/lib/utils";
 
 const fallbackSummaryCards = [
-  { label: "Tithes", value: "GHS 186,400", note: "This month · recorded giving" },
-  { label: "Offerings", value: "GHS 52,180", note: "General and special offerings" },
-  { label: "Donations", value: "GHS 28,940", note: "Designated and one-time gifts" },
-  { label: "Pledges", value: "GHS 41,200", note: "Installments received toward commitments" },
-  { label: "Welfare Contributions", value: "GHS 14,220", note: "Care and benevolence pool" },
+  { label: "Tithes", value: "—", note: "Loads from /giving/summary or /finance/summary fallback" },
+  { label: "Offerings", value: "—", note: "Loads from /giving/summary or /finance/summary fallback" },
+  { label: "Donations", value: "—", note: "Loads from /giving/summary or /finance/summary fallback" },
+  { label: "Pledges", value: "—", note: "Loads from /giving/summary or /finance/summary fallback" },
+  { label: "Welfare Contributions", value: "—", note: "Loads from /giving/summary or /finance/summary fallback" },
 ] as const;
 
 const trendData = [
@@ -42,58 +43,7 @@ type GivingRow = {
   financeSync: "Synced" | "Queued" | "Retry";
 };
 
-const fallbackRecords: GivingRow[] = [
-  {
-    id: "g-1",
-    member: "Emmanuel A.",
-    category: "Tithe",
-    amount: "GHS 2,400.00",
-    paymentMethod: "Mobile money",
-    date: "2026-04-26",
-    receiptStatus: "Issued",
-    financeSync: "Synced",
-  },
-  {
-    id: "g-2",
-    member: "Ruth Mensah",
-    category: "Offering",
-    amount: "GHS 150.00",
-    paymentMethod: "Card",
-    date: "2026-04-26",
-    receiptStatus: "Pending",
-    financeSync: "Queued",
-  },
-  {
-    id: "g-3",
-    member: "Anonymous",
-    category: "Donation · building",
-    amount: "GHS 5,000.00",
-    paymentMethod: "Bank transfer",
-    date: "2026-04-25",
-    receiptStatus: "Issued",
-    financeSync: "Synced",
-  },
-  {
-    id: "g-4",
-    member: "Daniel K.",
-    category: "Pledge installment",
-    amount: "GHS 500.00",
-    paymentMethod: "Mobile money",
-    date: "2026-04-24",
-    receiptStatus: "Issued",
-    financeSync: "Synced",
-  },
-  {
-    id: "g-5",
-    member: "Grace O.",
-    category: "Welfare",
-    amount: "GHS 200.00",
-    paymentMethod: "Cash (recorded)",
-    date: "2026-04-23",
-    receiptStatus: "Not requested",
-    financeSync: "Retry",
-  },
-];
+const fallbackRecords: GivingRow[] = [];
 
 const pledges = {
   active: [
@@ -133,7 +83,10 @@ export default function AdminGivingPage() {
   const summaryQuery = useApiData("admin-giving-summary", fetchGivingSummary, {});
   const recordsQuery = useApiData(
     "admin-giving-records",
-    async () => (await fetchGivingRecords()).map(mapAdminGivingRecord),
+    async () => {
+      const rows = await fetchGivingRecords();
+      return Array.isArray(rows) ? rows.map(mapAdminGivingRecord) : [];
+    },
     fallbackRecords,
   );
 
@@ -147,7 +100,7 @@ export default function AdminGivingPage() {
       ]
     : fallbackSummaryCards;
 
-  const records = recordsQuery.data;
+  const records = Array.isArray(recordsQuery.data) ? recordsQuery.data : fallbackRecords;
 
   return (
     <main className="space-y-5">
@@ -155,7 +108,8 @@ export default function AdminGivingPage() {
         isLoading={summaryQuery.isLoading || recordsQuery.isLoading}
         error={summaryQuery.error ?? recordsQuery.error}
         isLive={summaryQuery.isLive || recordsQuery.isLive}
-        fallbackLabel="Giving endpoints are not available yet. Showing preview data and finance fallback where possible."
+        liveLabel="Showing live giving data from /giving/* or finance fallback (/finance/summary, /finance/transactions)."
+        fallbackLabel="Could not load giving data. Finance fallback was attempted where available."
       />
 
       <AdminPageHeader
@@ -201,9 +155,10 @@ export default function AdminGivingPage() {
 
       <AdminCard
         title="Giving trends"
-        description="Month-by-month totals (mock)—for gratitude-shaped updates, not surveillance of individuals."
+        description={previewDescription("Month-by-month totals—for gratitude-shaped updates, not surveillance of individuals.")}
         className="border-white/10"
       >
+        <PreviewSectionNotice />
         <div className="h-64 w-full pt-1">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={trendData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
@@ -240,7 +195,18 @@ export default function AdminGivingPage() {
         </div>
       </AdminCard>
 
-      <AdminCard title="Giving records" description="Recent contributions with receipt and finance handoff status (illustrative)." className="border-white/10">
+      <AdminCard
+        title="Giving records"
+        description={
+          recordsQuery.isLive
+            ? "Recent contributions from /giving/records or /finance/transactions fallback."
+            : "Recent contributions — sign in to load giving or finance fallback data."
+        }
+        className="border-white/10"
+      >
+        {!recordsQuery.isLive ? (
+          <PreviewSectionNotice message="No giving rows loaded yet. Records use /giving/records with finance transactions as fallback." />
+        ) : null}
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full min-w-[1020px] border-collapse text-sm">
             <thead className="border-b border-white/10 bg-white/[0.04] text-slate-400">
@@ -253,7 +219,14 @@ export default function AdminGivingPage() {
               </tr>
             </thead>
             <tbody>
-              {records.map((row) => (
+              {records.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
+                    {recordsQuery.isLive ? "No giving records found." : "Giving records will appear here when the API loads."}
+                  </td>
+                </tr>
+              ) : (
+                records.map((row) => (
                 <tr key={row.id} className="border-t border-white/[0.06] bg-white/[0.02]">
                   <td className="px-3 py-2.5 font-medium text-white">{row.member}</td>
                   <td className="px-3 py-2.5 text-slate-300">{row.category}</td>
@@ -273,7 +246,8 @@ export default function AdminGivingPage() {
                     </span>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -282,9 +256,10 @@ export default function AdminGivingPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <AdminCard
           title="Pledge tracking"
-          description="Commitments honoured over time—with patience for those catching up."
+          description={previewDescription("Commitments honoured over time—with patience for those catching up.")}
           className="border-amber-400/10 bg-gradient-to-b from-amber-950/10 to-transparent"
         >
+          <PreviewSectionNotice message="Preview only — pledge tracking is not connected to a backend endpoint yet." />
           <div className="space-y-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-amber-200/80">Active pledges</p>
@@ -324,7 +299,7 @@ export default function AdminGivingPage() {
 
         <AdminCard
           title="Receipt management"
-          description="Templates, numbering, and member-facing confirmations will live here—distinct from Finance journals."
+          description={previewDescription("Templates, numbering, and member-facing confirmations will live here—distinct from Finance journals.")}
           className="border-white/10"
         >
           <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-teal-400/25 bg-teal-950/15 px-4 py-5">

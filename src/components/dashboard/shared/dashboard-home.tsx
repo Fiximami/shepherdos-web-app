@@ -16,12 +16,16 @@ import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SummaryCard } from "@/components/dashboard/shared/summary-card";
 import { CommunityFeed } from "@/components/feed/community-feed";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
+import { PreviewSectionNotice } from "@/components/shared/preview-section-notice";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiData } from "@/hooks/use-api-data";
 import { useMemberProfileFields } from "@/hooks/use-member-profile-fields";
-import { fetchAttendanceSummary } from "@/lib/api/attendance";
-import { fetchFinanceSummary } from "@/lib/api/finance";
+import { fetchMyAttendance } from "@/lib/api/attendance";
 import { pickSummaryCurrency, pickSummaryValue } from "@/lib/api/formatters";
+import { fetchMyGiving } from "@/lib/api/giving";
+import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
+import { useAuth } from "@/providers/auth-provider";
 
 const upcomingEvents = [
   { title: "Sunday Celebration Service", when: "Tomorrow · 9:00 AM", place: "Main Campus" },
@@ -46,49 +50,100 @@ const notifications = [
   { title: "Service team rota for next week is available", time: "2 days ago" },
 ] as const;
 
-const fallbackGivingSummary = {
-  thisMonth: "GHS 0",
-  lastGift: "—",
-  category: "—",
+const demoGivingSummary = {
+  thisMonth: "GHS 2,400",
+  lastGift: "GHS 350",
+  category: "Tithe",
 } as const;
 
+const demoAttendanceCards = [
+  { label: "Attendance this week", value: "2", detail: "Your recorded services", icon: CalendarDays },
+  { label: "Attendance this month", value: "8", detail: "Your participation snapshot", icon: CalendarCheck2 },
+  { label: "Your branch", value: "Main Campus", detail: "Active member", icon: UserRound },
+] as const;
+
 export function DashboardHome() {
-  const { user, isAuthenticatedLive, profileQuery, fields } = useMemberProfileFields();
-  const attendanceQuery = useApiData("member-dashboard-attendance", fetchAttendanceSummary, {});
-  const financeQuery = useApiData("member-dashboard-finance", fetchFinanceSummary, {});
+  const { isDemo } = useAuth();
+  const { user, isAuthenticatedLive, isLinked, memberQuery, fields } = useMemberProfileFields();
+  const attendanceQuery = useApiData("member-dashboard-attendance-me", fetchMyAttendance, EMPTY_MEMBER_SCOPE);
+  const givingQuery = useApiData("member-dashboard-giving-me", fetchMyGiving, EMPTY_MEMBER_SCOPE);
 
   const welcomeName = user.name.split(" ")[0];
-  const liveDataLoading = attendanceQuery.isLoading || financeQuery.isLoading;
-  const liveDataError = attendanceQuery.error ?? financeQuery.error;
-  const liveDataConnected = attendanceQuery.isLive || financeQuery.isLive;
+  const liveDataLoading = attendanceQuery.isLoading || givingQuery.isLoading || memberQuery.isLoading;
+  const liveDataError = attendanceQuery.error ?? givingQuery.error ?? memberQuery.error;
+  const liveDataConnected = attendanceQuery.isLive || givingQuery.isLive || memberQuery.isLive;
+  const showUnlinked =
+    isAuthenticatedLive &&
+    liveDataConnected &&
+    !isLinked &&
+    !attendanceQuery.data.linked &&
+    !givingQuery.data.linked;
 
   const givingSummary = useMemo(() => {
-    if (!financeQuery.isLive) return fallbackGivingSummary;
+    if (isDemo) return demoGivingSummary;
+    if (!givingQuery.isLive || !givingQuery.data.linked) {
+      return { thisMonth: "—", lastGift: "—", category: "—" };
+    }
 
     return {
-      thisMonth: pickSummaryCurrency(financeQuery.data, [
+      thisMonth: pickSummaryCurrency(givingQuery.data.summary, [
         "givingThisMonth",
         "monthTotal",
-        "totalIncome",
-        "totalTithes",
+        "totalThisMonth",
+        "total",
       ]),
-      lastGift: pickSummaryCurrency(financeQuery.data, ["lastGift", "lastContribution", "lastTransactionAmount"]),
-      category: pickSummaryValue(financeQuery.data, ["lastGiftCategory", "lastCategory"], "—"),
+      lastGift: pickSummaryCurrency(givingQuery.data.summary, [
+        "lastGift",
+        "lastContribution",
+        "lastTransactionAmount",
+      ]),
+      category: pickSummaryValue(givingQuery.data.summary, ["lastGiftCategory", "lastCategory"], "—"),
     };
-  }, [financeQuery.data, financeQuery.isLive]);
+  }, [givingQuery.data, givingQuery.isLive, isDemo]);
 
-  const attendanceCards = useMemo(
-    () => [
+  const attendanceCards = useMemo(() => {
+    if (isDemo) {
+      return demoAttendanceCards.map((card) => ({
+        ...card,
+        value: card.label === "Your branch" ? fields.branch : card.value,
+        detail: card.label === "Your branch" ? fields.membershipStatus : card.detail,
+      }));
+    }
+
+    if (!attendanceQuery.isLive || !attendanceQuery.data.linked) {
+      return [
+        {
+          label: "Attendance this week",
+          value: "—",
+          detail: "Your recorded services",
+          icon: CalendarDays,
+        },
+        {
+          label: "Attendance this month",
+          value: "—",
+          detail: "Your participation snapshot",
+          icon: CalendarCheck2,
+        },
+        {
+          label: "Your branch",
+          value: fields.branch,
+          detail: fields.membershipStatus,
+          icon: UserRound,
+        },
+      ];
+    }
+
+    return [
       {
         label: "Attendance this week",
-        value: pickSummaryValue(attendanceQuery.data, ["thisWeek", "weekCount"], "—"),
-        detail: "Recorded across church services",
+        value: pickSummaryValue(attendanceQuery.data.summary, ["thisWeek", "weekCount", "sessionsThisWeek"], "0"),
+        detail: "Your recorded services",
         icon: CalendarDays,
       },
       {
         label: "Attendance this month",
-        value: pickSummaryValue(attendanceQuery.data, ["thisMonth", "monthCount"], "—"),
-        detail: "Steady participation snapshot",
+        value: pickSummaryValue(attendanceQuery.data.summary, ["thisMonth", "monthCount", "sessionsThisMonth"], "0"),
+        detail: "Your participation snapshot",
         icon: CalendarCheck2,
       },
       {
@@ -97,9 +152,8 @@ export function DashboardHome() {
         detail: fields.membershipStatus,
         icon: UserRound,
       },
-    ],
-    [attendanceQuery.data, fields.branch, fields.membershipStatus],
-  );
+    ];
+  }, [attendanceQuery.data, attendanceQuery.isLive, fields.branch, fields.membershipStatus, isDemo]);
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-5 lg:p-6">
@@ -117,11 +171,14 @@ export function DashboardHome() {
 
       {isAuthenticatedLive ? (
         <ApiConnectionNotice
-          isLoading={liveDataLoading || profileQuery.isLoading}
-          error={liveDataError ?? profileQuery.error}
-          isLive={liveDataConnected || profileQuery.isLive}
+          isLoading={liveDataLoading}
+          error={liveDataError}
+          isLive={liveDataConnected}
+          liveLabel="Showing your personal data from /members/me, /attendance/me, and /giving/me."
         />
       ) : null}
+
+      {showUnlinked ? <MemberLinkedNotice /> : null}
 
       <section className="shepherd-fade-in grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {attendanceCards.map((card) => (
@@ -145,6 +202,7 @@ export function DashboardHome() {
             <CardDescription>What is coming next in your church rhythm.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
+            <PreviewSectionNotice message="Preview only — events are not connected to a member endpoint yet." />
             {upcomingEvents.map((event) => (
               <div key={event.title} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
                 <p className="text-sm font-medium text-white">{event.title}</p>
@@ -165,6 +223,7 @@ export function DashboardHome() {
             <CardDescription>Care moments that need gentle attention this week.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
+            <PreviewSectionNotice message="Preview only — prayer summaries are not connected yet." />
             {prayerSummary.map((line) => (
               <p key={line} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-gray-300">
                 {line}
@@ -212,6 +271,7 @@ export function DashboardHome() {
             <CardDescription>Joyful moments from your church family this week.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
+            <PreviewSectionNotice />
             {celebrations.map((item) => (
               <p key={item} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-gray-300">
                 {item}
@@ -233,6 +293,7 @@ export function DashboardHome() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <PreviewSectionNotice />
             <CommunityFeed maxPosts={4} showViewAllLink viewAllHref="/engagement" />
           </CardContent>
         </Card>
@@ -248,6 +309,7 @@ export function DashboardHome() {
             <CardDescription>A quick glance at recent updates relevant to you.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2.5">
+            <PreviewSectionNotice />
             {notifications.map((item) => (
               <div key={item.title} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
                 <div className="flex items-start justify-between gap-2">

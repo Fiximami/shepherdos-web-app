@@ -5,12 +5,16 @@ import { useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
+import { PreviewSectionNotice } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiData } from "@/hooks/use-api-data";
 import { useMemberProfileFields } from "@/hooks/use-member-profile-fields";
-import { fetchGivingRecords } from "@/lib/api/giving";
+import { fetchMyGiving } from "@/lib/api/giving";
 import { mapMemberGivingHistoryItem } from "@/lib/api/mappers";
+import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
+import { useAuth } from "@/providers/auth-provider";
 import { buildReceiptId, receiptRecords, type ReceiptCategory, type ReceiptPaymentMethod } from "@/lib/mock-receipts";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +43,7 @@ const givingCategories: Array<{ name: GivingCategory; detail: string }> = [
   { name: "Missions / Outreach", detail: "Gospel work beyond our walls" },
 ];
 
-const initialHistory: GivingHistoryItem[] = [
+const demoHistory: GivingHistoryItem[] = [
   {
     id: "g-1",
     receiptId: "RCPT-2026-004122",
@@ -59,46 +63,6 @@ const initialHistory: GivingHistoryItem[] = [
     method: "Card",
     dateISO: "2026-04-18",
     status: "Completed",
-  },
-  {
-    id: "g-3",
-    receiptId: "RCPT-2026-003995",
-    financeReference: "INC-2026-08793",
-    category: "Welfare",
-    amount: 200,
-    method: "Bank Transfer",
-    dateISO: "2026-04-10",
-    status: "Completed",
-  },
-  {
-    id: "g-4",
-    receiptId: "RCPT-2026-003872",
-    financeReference: "INC-2026-08698",
-    category: "Missions / Outreach",
-    amount: 500,
-    method: "Mobile Money",
-    dateISO: "2026-03-28",
-    status: "Completed",
-  },
-  {
-    id: "g-5",
-    receiptId: "RCPT-2026-002455",
-    financeReference: "INC-2026-07802",
-    category: "Pledge",
-    amount: 600,
-    method: "Card",
-    dateISO: "2026-02-14",
-    status: "Completed",
-  },
-  {
-    id: "g-6",
-    receiptId: null,
-    financeReference: null,
-    category: "Project Support",
-    amount: 150,
-    method: "Mobile Money",
-    dateISO: "2026-04-26",
-    status: "Pending",
   },
 ];
 
@@ -132,26 +96,34 @@ function isSameYear(iso: string, ref: Date) {
 }
 
 export function MemberGivingPageView() {
-  const { user } = useMemberProfileFields();
+  const { isDemo } = useAuth();
+  const { user, isAuthenticatedLive } = useMemberProfileFields();
   const now = useMemo(() => new Date(), []);
   const [selectedCategory, setSelectedCategory] = useState<GivingCategory>("Tithe");
   const [amountInput, setAmountInput] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Mobile Money");
   const [note, setNote] = useState("");
   const [localHistory, setLocalHistory] = useState<GivingHistoryItem[]>([]);
-  const recordsQuery = useApiData(
-    "member-giving-records",
-    async () => (await fetchGivingRecords()).map(mapMemberGivingHistoryItem),
-    initialHistory,
+  const givingQuery = useApiData(
+    "member-giving-me",
+    fetchMyGiving,
+    EMPTY_MEMBER_SCOPE,
   );
   const [selectedReceiptIds, setSelectedReceiptIds] = useState<Set<string>>(new Set());
   const [previewReceiptId, setPreviewReceiptId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
 
+  const isLinked = givingQuery.isLive && givingQuery.data.linked;
+
   const history = useMemo(() => {
-    const base = recordsQuery.isLive ? recordsQuery.data : initialHistory;
-    return [...localHistory, ...base];
-  }, [localHistory, recordsQuery.data, recordsQuery.isLive]);
+    const apiHistory =
+      isLinked && givingQuery.isLive
+        ? givingQuery.data.items.map((item, index) => mapMemberGivingHistoryItem(item, index))
+        : isDemo
+          ? demoHistory
+          : [];
+    return [...localHistory, ...apiHistory];
+  }, [givingQuery.data.items, givingQuery.isLive, isDemo, isLinked, localHistory]);
 
   const parsedAmount = Number(amountInput);
   const canSubmit = Number.isFinite(parsedAmount) && parsedAmount > 0;
@@ -252,12 +224,16 @@ export function MemberGivingPageView() {
         </div>
       </section>
 
-      <ApiConnectionNotice
-        isLoading={recordsQuery.isLoading}
-        error={recordsQuery.error}
-        isLive={recordsQuery.isLive}
-        fallbackLabel="Giving records are shown from finance transactions until dedicated giving endpoints are available."
-      />
+      {isAuthenticatedLive ? (
+        <ApiConnectionNotice
+          isLoading={givingQuery.isLoading}
+          error={givingQuery.error}
+          isLive={givingQuery.isLive}
+          liveLabel="Showing your personal giving records from /giving/me."
+        />
+      ) : null}
+
+      {givingQuery.isLive && !givingQuery.data.linked ? <MemberLinkedNotice /> : null}
 
       <section className="shepherd-fade-in">
         <Card className="border-white/10 bg-white/[0.04] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">
@@ -419,7 +395,18 @@ export function MemberGivingPageView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedHistory.map((row) => {
+                  {sortedHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-sm text-slate-500">
+                        {isLinked
+                          ? "No giving history yet."
+                          : isDemo
+                            ? "Preview giving history appears in demo mode."
+                            : "Your giving history will appear when your profile is linked."}
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedHistory.map((row) => {
                     const canReceipt = row.status === "Completed";
                     return (
                       <tr key={row.id} className="border-b border-white/[0.06] last:border-0">
@@ -477,7 +464,8 @@ export function MemberGivingPageView() {
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                  )}
                 </tbody>
               </table>
             </CardContent>
@@ -523,6 +511,7 @@ export function MemberGivingPageView() {
               <CardDescription>Honouring commitments at a pace that fits your season.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <PreviewSectionNotice message="Preview only — pledge progress is not connected to /giving/me yet." />
               {pledgeRows.map((p) => {
                 const balance = Math.max(0, p.target - p.paid);
                 const pct = Math.min(100, Math.round((p.paid / p.target) * 100));

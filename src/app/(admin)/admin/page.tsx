@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { PreviewSectionNotice, previewDescription } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { useApiData } from "@/hooks/use-api-data";
 import { fetchLeadershipDashboardSummary } from "@/lib/api/dashboard";
@@ -30,10 +31,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { cn } from "@/lib/utils";
 
 const leadershipMetrics = [
-  { label: "Active Members", value: "1,248", note: "Up 4.2% from last month", icon: Users },
-  { label: "Attendance This Week", value: "3,441", note: "Steady across branch services", icon: ChartNoAxesCombined },
-  { label: "Giving This Month", value: "GHS 128.4k", note: "Consistent stewardship rhythm", icon: HandCoins },
-  { label: "Pending Follow-ups", value: "18", note: "Care touchpoints due this week", icon: Clock3 },
+  { label: "Active Members", value: "—", note: "Loads from /members/summary when signed in", icon: Users },
+  { label: "Attendance This Week", value: "—", note: "Loads from /attendance/summary when signed in", icon: ChartNoAxesCombined },
+  { label: "Giving This Month", value: "—", note: "Loads from /finance/summary when signed in", icon: HandCoins },
+  { label: "Pending Follow-ups", value: "—", note: "Loads from /members/summary when signed in", icon: Clock3 },
 ] as const;
 
 const careAttention = [
@@ -188,7 +189,7 @@ export default function AdminPage() {
         {
           label: "Pending Follow-ups",
           value: pickSummaryValue(dashboardQuery.data.members, ["pendingFollowUps", "followUpNeeded", "needingFollowUp"]),
-          note: "Care touchpoints due this week",
+          note: "From member summary API",
           icon: Clock3,
         },
       ]
@@ -206,6 +207,7 @@ export default function AdminPage() {
         isLoading={dashboardQuery.isLoading}
         error={dashboardQuery.error}
         isLive={dashboardQuery.isLive}
+        liveLabel="Summary cards use live data from /members/summary, /attendance/summary, and /finance/summary."
       />
 
       <section className="shepherd-fade-in relative overflow-hidden rounded-2xl border border-white/10 bg-[#10263a]/75 p-5 shadow-[0_24px_52px_-40px_rgba(0,0,0,0.78)] backdrop-blur-xl sm:p-6">
@@ -260,9 +262,10 @@ export default function AdminPage() {
         <Card className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">
           <CardHeader>
             <CardTitle className="text-base text-white">Care Attention Needed</CardTitle>
-            <CardDescription>Gentle prompts to help leaders respond with care and consistency.</CardDescription>
+            <CardDescription>{previewDescription("Gentle prompts to help leaders respond with care and consistency.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
+            <PreviewSectionNotice message="Preview only — care queues will load when follow-up endpoints are available." />
             {careAttention.map((item) => (
               <div key={item.title} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5">
                 <p className="text-sm font-medium text-white">
@@ -298,7 +301,7 @@ export default function AdminPage() {
           <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-base text-white">Shepherd Insights</CardTitle>
-              <CardDescription>Calm intelligence highlights so leaders can respond early and wisely.</CardDescription>
+              <CardDescription>{previewDescription("Calm intelligence highlights so leaders can respond early and wisely.")}</CardDescription>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {(
@@ -325,7 +328,8 @@ export default function AdminPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+            <PreviewSectionNotice message="Preview only — insight cards are placeholders until analytics endpoints are available." />
+            <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
               {visibleInsights.map((insight) => (
                 <div
                   key={insight.id}

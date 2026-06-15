@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 
 import { pickSummaryValue } from "@/lib/api/formatters";
-import { fetchProfileSettings } from "@/lib/api/settings";
+import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
+import { fetchMyMemberProfile } from "@/lib/api/members";
 import { getDemoSessionUser } from "@/lib/auth/map-user";
 import { useApiData } from "@/hooks/use-api-data";
 import { useAuth } from "@/providers/auth-provider";
@@ -24,11 +25,12 @@ const demoProfileFields = {
 
 export function useMemberProfileFields() {
   const { user, isDemo, status } = useAuth();
-  const profileQuery = useApiData("member-profile-settings", fetchProfileSettings, {});
+  const memberQuery = useApiData("member-profile-me", fetchMyMemberProfile, EMPTY_MEMBER_SCOPE);
 
   const isAuthenticatedLive = status === "authenticated" && !isDemo && Boolean(user);
   const displayUser = isAuthenticatedLive && user ? user : getDemoSessionUser();
-  const profileData = profileQuery.data;
+  const profileData = memberQuery.data.profile;
+  const isLinked = memberQuery.isLive && memberQuery.data.linked;
 
   const fields = useMemo(() => {
     if (!isAuthenticatedLive) {
@@ -47,6 +49,22 @@ export function useMemberProfileFields() {
       };
     }
 
+    if (!isLinked) {
+      return {
+        memberId: "—",
+        email: displayUser.email || "—",
+        phone: "—",
+        dateOfBirth: "—",
+        address: "—",
+        joinedDate: "—",
+        emergencyContact: "—",
+        branch: "—",
+        fellowshipUnit: "—",
+        pastor: "—",
+        membershipStatus: "Not linked",
+      };
+    }
+
     return {
       memberId: pickSummaryValue(profileData, ["memberId", "membershipId", "id"], "—"),
       email: pickSummaryValue(profileData, ["email"], displayUser.email || "—"),
@@ -60,12 +78,14 @@ export function useMemberProfileFields() {
       pastor: pickSummaryValue(profileData, ["pastor", "pastoralOversight"], "—"),
       membershipStatus: pickSummaryValue(profileData, ["membershipStatus", "status"], "Active member"),
     };
-  }, [displayUser.email, isAuthenticatedLive, profileData]);
+  }, [displayUser.email, isAuthenticatedLive, isLinked, profileData]);
 
   return {
     user: displayUser,
     isAuthenticatedLive,
-    profileQuery,
+    isLinked,
+    memberQuery,
+    profileQuery: memberQuery,
     fields,
   };
 }

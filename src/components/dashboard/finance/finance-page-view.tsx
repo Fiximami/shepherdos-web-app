@@ -19,12 +19,17 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SummaryCard } from "@/components/dashboard/shared/summary-card";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
+import { PreviewSectionNotice } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiData } from "@/hooks/use-api-data";
-import { fetchFinanceSummary, fetchFinanceTransactions } from "@/lib/api/finance";
+import { fetchMyFinance } from "@/lib/api/finance";
 import { formatCurrency, pickSummaryCurrency, pickSummaryValue } from "@/lib/api/formatters";
 import { mapMemberFinanceTransaction, type MemberFinanceTxRow } from "@/lib/api/mappers";
+import { emptyMemberScope } from "@/lib/api/member-scope";
+import type { ApiFinanceTransaction } from "@/lib/api/types";
+import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
 
 const fallbackGivingTrend = [
@@ -36,11 +41,11 @@ const fallbackGivingTrend = [
   { month: "Jun", giving: 2_840_000 },
 ];
 
-const fallbackTransactions: MemberFinanceTxRow[] = [
+const demoTransactions: MemberFinanceTxRow[] = [
   {
     reference: "TXN-24089",
     category: "Tithe",
-    member: "Ruth Eze",
+    member: "You",
     amount: 120_000,
     paymentMethod: "Bank transfer",
     date: "2026-04-22",
@@ -49,37 +54,10 @@ const fallbackTransactions: MemberFinanceTxRow[] = [
   {
     reference: "TXN-24091",
     category: "Offering",
-    member: "Anonymous",
+    member: "You",
     amount: 45_000,
-    paymentMethod: "Cash",
+    paymentMethod: "Mobile money",
     date: "2026-04-21",
-    status: "Cleared",
-  },
-  {
-    reference: "TXN-24094",
-    category: "Welfare",
-    member: "Finance office",
-    amount: 180_000,
-    paymentMethod: "Bank transfer",
-    date: "2026-04-20",
-    status: "Pending",
-  },
-  {
-    reference: "TXN-24098",
-    category: "Pledge",
-    member: "David Aina",
-    amount: 250_000,
-    paymentMethod: "Card",
-    date: "2026-04-19",
-    status: "Review",
-  },
-  {
-    reference: "TXN-24102",
-    category: "Donation",
-    member: "Grace Nwosu",
-    amount: 75_000,
-    paymentMethod: "Bank transfer",
-    date: "2026-04-18",
     status: "Cleared",
   },
 ];
@@ -189,57 +167,101 @@ const columns: ColumnDef<MemberFinanceTxRow>[] = [
 ];
 
 export function FinancePageView() {
-  const summaryQuery = useApiData("member-finance-summary", fetchFinanceSummary, {});
-  const transactionsQuery = useApiData(
-    "member-finance-transactions",
-    async () => (await fetchFinanceTransactions()).map(mapMemberFinanceTransaction),
-    fallbackTransactions,
-  );
+  const { isDemo } = useAuth();
+  const financeQuery = useApiData("member-finance-me", fetchMyFinance, emptyMemberScope<ApiFinanceTransaction>());
 
-  const transactions = transactionsQuery.data;
+  const isLinked = financeQuery.isLive && financeQuery.data.linked;
+
+  const transactions = useMemo(() => {
+    if (isDemo) return demoTransactions;
+    if (!isLinked) return [];
+    return financeQuery.data.items.map(mapMemberFinanceTransaction);
+  }, [financeQuery.data.items, isDemo, isLinked]);
+
   const givingTrend = useMemo(() => {
-    if (!transactionsQuery.isLive) return fallbackGivingTrend;
-    const built = buildGivingTrend(transactions);
-    return built.length > 0 ? built : fallbackGivingTrend;
-  }, [transactions, transactionsQuery.isLive]);
+    if (isDemo) return fallbackGivingTrend;
+    if (!isLinked || transactions.length === 0) return [];
+    return buildGivingTrend(transactions);
+  }, [isDemo, isLinked, transactions]);
 
   const liveCategoryBreakdown = useMemo(() => {
-    if (!transactionsQuery.isLive) return [...categoryBreakdown];
-    const built = buildCategoryBreakdown(transactions);
-    return built.length > 0 ? built : [...categoryBreakdown];
-  }, [transactions, transactionsQuery.isLive]);
+    if (isDemo) return [...categoryBreakdown];
+    if (!isLinked || transactions.length === 0) return [];
+    return buildCategoryBreakdown(transactions);
+  }, [isDemo, isLinked, transactions]);
 
   const maxCategory = Math.max(...liveCategoryBreakdown.map((c) => c.amount), 1);
 
-  const summaryCards = useMemo(
-    () => [
+  const summaryCards = useMemo(() => {
+    if (isDemo) {
+      return [
+        {
+          label: "Total Giving This Month",
+          value: "GHS 165,000",
+          detail: "Your recorded giving",
+          icon: HandCoins,
+        },
+        {
+          label: "Total This Year",
+          value: "GHS 420,000",
+          detail: "Your giving history",
+          icon: Receipt,
+        },
+        {
+          label: "Recent Transactions",
+          value: "2",
+          detail: "On your personal record",
+          icon: ClipboardCheck,
+        },
+        {
+          label: "Last gift",
+          value: "GHS 45,000",
+          detail: "Most recent contribution",
+          icon: Activity,
+        },
+      ];
+    }
+
+    if (!isLinked) {
+      return [
+        { label: "Total Giving This Month", value: "—", detail: "Your recorded giving", icon: HandCoins },
+        { label: "Total This Year", value: "—", detail: "Your giving history", icon: Receipt },
+        { label: "Recent Transactions", value: "0", detail: "On your personal record", icon: ClipboardCheck },
+        { label: "Last gift", value: "—", detail: "Most recent contribution", icon: Activity },
+      ];
+    }
+
+    return [
       {
         label: "Total Giving This Month",
-        value: pickSummaryCurrency(summaryQuery.data, ["givingThisMonth", "totalIncome", "monthTotal"], "GHS 0"),
-        detail: "Faithful generosity across branches",
+        value: pickSummaryCurrency(financeQuery.data.summary, ["givingThisMonth", "monthTotal", "totalThisMonth"], "GHS 0"),
+        detail: "Your recorded giving",
         icon: HandCoins,
       },
       {
-        label: "Total Expenses This Month",
-        value: pickSummaryCurrency(summaryQuery.data, ["totalExpenses", "expenses"], "GHS 0"),
-        detail: "Aligned to approved ministry lines",
+        label: "Total This Year",
+        value: pickSummaryCurrency(financeQuery.data.summary, ["totalThisYear", "yearTotal", "yearToDate"], "GHS 0"),
+        detail: "Your giving history",
         icon: Receipt,
       },
       {
-        label: "Pending Approvals",
-        value: pickSummaryValue(summaryQuery.data, ["pendingApprovals", "pendingCount"], "0"),
-        detail: "Waiting on review or second signature",
+        label: "Recent Transactions",
+        value: pickSummaryValue(
+          financeQuery.data.summary,
+          ["transactionCount", "count", "totalTransactions"],
+          String(transactions.length),
+        ),
+        detail: "On your personal record",
         icon: ClipboardCheck,
       },
       {
-        label: "Budget Health",
-        value: pickSummaryValue(summaryQuery.data, ["budgetHealth", "netBalanceStatus"], "On track"),
-        detail: pickSummaryValue(summaryQuery.data, ["budgetNote"], "Giving and expenses overview"),
+        label: "Last gift",
+        value: pickSummaryCurrency(financeQuery.data.summary, ["lastGift", "lastContribution", "lastTransactionAmount"], "—"),
+        detail: "Most recent contribution",
         icon: Activity,
       },
-    ],
-    [summaryQuery.data],
-  );
+    ];
+  }, [financeQuery.data.summary, isDemo, isLinked, transactions.length]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -252,7 +274,7 @@ export function FinancePageView() {
     <main className="mx-auto w-full max-w-7xl p-4 sm:p-5 lg:p-6">
       <PageHeader
         title="Finance"
-        description="A steady view of giving, spending, and what still needs a careful yes—so stewardship stays visible, kind, and accountable."
+        description="A steady view of your giving and contributions—so your personal stewardship stays visible and accountable."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button className="h-10 rounded-xl">
@@ -268,10 +290,13 @@ export function FinancePageView() {
       />
 
       <ApiConnectionNotice
-        isLoading={summaryQuery.isLoading || transactionsQuery.isLoading}
-        error={summaryQuery.error ?? transactionsQuery.error}
-        isLive={summaryQuery.isLive || transactionsQuery.isLive}
+        isLoading={financeQuery.isLoading}
+        error={financeQuery.error}
+        isLive={financeQuery.isLive}
+        liveLabel="Showing your personal finance records from /finance/me."
       />
+
+      {financeQuery.isLive && !financeQuery.data.linked ? <MemberLinkedNotice /> : null}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
@@ -290,12 +315,16 @@ export function FinancePageView() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base sm:text-lg">Giving trend</CardTitle>
             <CardDescription>
-              Month-by-month giving so leaders can notice rhythm, gratitude, and any
-              gentle shifts worth a conversation—not a panic.
+              Your month-by-month giving rhythm—not church-wide totals.
             </CardDescription>
           </CardHeader>
           <CardContent className="h-72 pt-2">
-            <ResponsiveContainer width="100%" height="100%">
+            {givingTrend.length === 0 ? (
+              <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                {isLinked ? "No giving history to chart yet." : "Your giving trend will appear when your profile is linked."}
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={givingTrend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="givingTrendFill" x1="0" y1="0" x2="0" y2="1">
@@ -330,6 +359,7 @@ export function FinancePageView() {
                 />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </section>
@@ -339,8 +369,7 @@ export function FinancePageView() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base sm:text-lg">Recent transactions</CardTitle>
             <CardDescription>
-              A concise ledger of what moved recently—names where it helps, clarity
-              where it matters.
+              Your personal contribution history from /finance/me.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -366,7 +395,18 @@ export function FinancePageView() {
                   ))}
                 </thead>
                 <tbody>
-                  {table.getRowModel().rows.map((row) => (
+                  {table.getRowModel().rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                        {isLinked
+                          ? "No finance records on your profile yet."
+                          : isDemo
+                            ? "Preview transactions appear in demo mode."
+                            : "Your transactions will appear here when /finance/me loads."}
+                      </td>
+                    </tr>
+                  ) : (
+                    table.getRowModel().rows.map((row) => (
                     <tr key={row.id} className="border-t border-border/60 bg-background/55">
                       {row.getVisibleCells().map((cell) => (
                         <td key={cell.id} className="px-3 py-2.5 align-top text-foreground">
@@ -374,7 +414,8 @@ export function FinancePageView() {
                         </td>
                       ))}
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -392,7 +433,12 @@ export function FinancePageView() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {liveCategoryBreakdown.map((row) => (
+            {liveCategoryBreakdown.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {isLinked ? "No category breakdown available yet." : "Category breakdown appears when your profile is linked."}
+              </p>
+            ) : (
+              liveCategoryBreakdown.map((row) => (
               <div key={row.name} className="space-y-1.5">
                 <div className="flex items-baseline justify-between gap-3 text-sm">
                   <span className="font-medium text-foreground">{row.name}</span>
@@ -407,7 +453,8 @@ export function FinancePageView() {
                   />
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </section>
@@ -417,11 +464,11 @@ export function FinancePageView() {
           <CardHeader>
             <CardTitle className="text-base sm:text-lg">Pending approvals</CardTitle>
             <CardDescription>
-              Items that deserve a second look before funds move—keeping trust with your
-              congregation and your books.
+              Preview only — approval workflows are for finance officers, not member records.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <PreviewSectionNotice />
             {pendingApprovals.map((item) => (
               <div
                 key={item.reference}

@@ -113,3 +113,10 @@ export type ApiAuditLog = {
 };
 
 export type ApiSettings = Record<string, unknown>;
+
+export type MemberScopeResult<T = Record<string, unknown>> = {
+  linked: boolean;
+  summary: Record<string, unknown>;
+  items: T[];
+  profile: Record<string, unknown>;
+};

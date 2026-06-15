@@ -5,8 +5,12 @@ import { useState } from "react";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SettingsPlaceholderRow, SettingsSectionShell } from "@/components/dashboard/settings/settings-section-shell";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
+import { useMemberProfileFields } from "@/hooks/use-member-profile-fields";
 
 export function SettingsPageView() {
+  const { user, isAuthenticatedLive, isLinked, profileQuery, fields } = useMemberProfileFields();
   const [allowEmailUpdates, setAllowEmailUpdates] = useState(true);
   const [allowPushReminders, setAllowPushReminders] = useState(true);
   const [allowPrayerUpdates, setAllowPrayerUpdates] = useState(true);
@@ -22,16 +26,27 @@ export function SettingsPageView() {
         description="Manage your account preferences in a calm and simple way, with controls designed for members."
       />
 
+      {isAuthenticatedLive ? (
+        <ApiConnectionNotice
+          isLoading={profileQuery.isLoading}
+          error={profileQuery.error}
+          isLive={profileQuery.isLive}
+          liveLabel="Account details use /members/me when your profile is linked."
+        />
+      ) : null}
+
+      {profileQuery.isLive && !isLinked ? <MemberLinkedNotice /> : null}
+
       <section className="shepherd-fade-in">
         <SettingsSectionShell
           title="Account preferences"
           description="Set your personal account defaults for a smoother day-to-day church experience."
           className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]"
         >
-          <SettingsPlaceholderRow label="Display name" value="John Doe" />
-          <SettingsPlaceholderRow label="Email" value="john.doe@gracecommunity.org" />
-          <SettingsPlaceholderRow label="Phone" value="+233 24 111 2233" />
-          <SettingsPlaceholderRow label="Preferred service branch" value="Main Campus" />
+          <SettingsPlaceholderRow label="Display name" value={user.name} />
+          <SettingsPlaceholderRow label="Email" value={fields.email} />
+          <SettingsPlaceholderRow label="Phone" value={fields.phone} />
+          <SettingsPlaceholderRow label="Preferred service branch" value={fields.branch} />
           <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm font-medium text-white">Weekly summary emails</span>
             <button

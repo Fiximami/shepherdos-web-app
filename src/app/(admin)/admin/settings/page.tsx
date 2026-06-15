@@ -19,9 +19,10 @@ import { useState } from "react";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { PreviewSectionNotice, previewDescription } from "@/components/shared/preview-section-notice";
 import { useApiData } from "@/hooks/use-api-data";
-import { formatApiValue } from "@/lib/api/formatters";
-import { fetchChurchSettings, fetchSettings } from "@/lib/api/settings";
+import { formatApiValue, pickSummaryValue } from "@/lib/api/formatters";
+import { fetchChurchSettings, fetchProfileSettings, fetchSettings } from "@/lib/api/settings";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 
@@ -80,21 +81,45 @@ export default function AdminSettingsPage() {
   const currentUser = useCurrentUser();
   const settingsQuery = useApiData("admin-settings", fetchSettings, {});
   const churchSettingsQuery = useApiData("admin-settings-church", fetchChurchSettings, {});
+  const profileSettingsQuery = useApiData("admin-settings-profile", fetchProfileSettings, {});
+
+  const churchSettings = churchSettingsQuery.data;
+  const workspaceSettings = settingsQuery.data;
+  const profileSettings = profileSettingsQuery.data;
 
   const churchName =
     formatApiValue(
-      churchSettingsQuery.data.name ??
-        churchSettingsQuery.data.churchName ??
-        settingsQuery.data.churchName,
+      churchSettings.name ?? churchSettings.churchName ?? workspaceSettings.churchName,
       currentUser.churchName,
     ) || currentUser.churchName;
+
+  const churchEmail = pickSummaryValue(
+    { ...workspaceSettings, ...churchSettings },
+    ["email", "contactEmail", "churchEmail"],
+    "—",
+  );
+  const churchPhone = pickSummaryValue(
+    { ...workspaceSettings, ...churchSettings },
+    ["phone", "phoneNumber", "contactPhone"],
+    "—",
+  );
+  const churchAddress = pickSummaryValue(
+    { ...workspaceSettings, ...churchSettings },
+    ["address", "location"],
+    "—",
+  );
+  const adminContactName = pickSummaryValue(profileSettings, ["name", "fullName", "adminName"], currentUser.name);
+  const adminContactEmail = pickSummaryValue(profileSettings, ["email"], currentUser.email);
+
+  const settingsLive = settingsQuery.isLive || churchSettingsQuery.isLive || profileSettingsQuery.isLive;
 
   return (
     <main className="space-y-5">
       <ApiConnectionNotice
-        isLoading={settingsQuery.isLoading || churchSettingsQuery.isLoading}
-        error={settingsQuery.error ?? churchSettingsQuery.error}
-        isLive={settingsQuery.isLive || churchSettingsQuery.isLive}
+        isLoading={settingsQuery.isLoading || churchSettingsQuery.isLoading || profileSettingsQuery.isLoading}
+        error={settingsQuery.error ?? churchSettingsQuery.error ?? profileSettingsQuery.error}
+        isLive={settingsLive}
+        liveLabel="Showing live settings from /settings, /settings/church, and /settings/profile."
       />
 
       <AdminPageHeader
@@ -106,8 +131,13 @@ export default function AdminSettingsPage() {
         <p className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-slate-400">{feedback}</p>
       ) : null}
 
-      <AdminCard title="Settings categories" description="Pick an area to open its full screen when your workspace is connected." className="border-white/10">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <AdminCard
+        title="Settings categories"
+        description={previewDescription("Pick an area to open its full screen when your workspace is connected.")}
+        className="border-white/10"
+      >
+        <PreviewSectionNotice message="Category tiles are navigation placeholders. Only church/profile fields below load from the settings API today." />
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {settingCategories.map((cat) => {
             const Icon = cat.icon;
             return (
@@ -134,7 +164,15 @@ export default function AdminSettingsPage() {
       </AdminCard>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <AdminCard title="Church branding" description="What people see when they open your church’s app and emails." className="border-white/10">
+        <AdminCard
+          title="Church branding"
+          description={
+            churchSettingsQuery.isLive || settingsQuery.isLive
+              ? "Church profile fields from /settings/church and /settings."
+              : "Church profile fields — sign in to load /settings/church."
+          }
+          className="border-white/10"
+        >
           <div className="space-y-4">
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="church-name">
@@ -143,17 +181,77 @@ export default function AdminSettingsPage() {
               <input
                 id="church-name"
                 readOnly
-                defaultValue={churchName}
+                value={churchName}
                 className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white placeholder:text-slate-600"
               />
               <p className="mt-1 text-[11px] text-slate-600">Shown on invitations, receipts, and the member home screen.</p>
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="church-email">
+                  Contact email
+                </label>
+                <input
+                  id="church-email"
+                  readOnly
+                  value={churchEmail}
+                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="church-phone">
+                  Contact phone
+                </label>
+                <input
+                  id="church-phone"
+                  readOnly
+                  value={churchPhone}
+                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="church-address">
+                Address
+              </label>
+              <input
+                id="church-address"
+                readOnly
+                value={churchAddress}
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white"
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="admin-name">
+                  Admin contact
+                </label>
+                <input
+                  id="admin-name"
+                  readOnly
+                  value={adminContactName}
+                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="admin-email">
+                  Admin email
+                </label>
+                <input
+                  id="admin-email"
+                  readOnly
+                  value={adminContactEmail}
+                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white"
+                />
+              </div>
+            </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Logo</p>
+              <PreviewSectionNotice message="Preview only — logo upload is not connected to the settings API yet." />
               <button
                 type="button"
                 onClick={() => setFeedback("Logo upload will open when connected.")}
-                className="mt-1.5 flex w-full max-w-xs flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-[#0c1420]/80 px-4 py-8 text-center transition-colors hover:border-sky-400/30"
+                className="mt-2 flex w-full max-w-xs flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-[#0c1420]/80 px-4 py-8 text-center transition-colors hover:border-sky-400/30"
               >
                 <Building2 className="size-8 text-slate-600" aria-hidden />
                 <span className="text-xs text-slate-500">Upload a square image (PNG or SVG). We will resize it for you.</span>
@@ -162,7 +260,7 @@ export default function AdminSettingsPage() {
             </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Colours</p>
-              <p className="mt-1 text-[11px] text-slate-600">Used for headers, buttons, and highlights. Keep contrast strong for readability.</p>
+              <PreviewSectionNotice message="Preview only — brand colours are illustrative until theme settings are saved via API." />
               <ul className="mt-3 flex flex-wrap gap-3">
                 {brandColors.map((c) => (
                   <li key={c.label} className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2">
@@ -180,10 +278,11 @@ export default function AdminSettingsPage() {
 
         <AdminCard
           title="Roles and permissions"
-          description="A simple map of who can do what. Fine-grained toggles will appear when your directory is connected."
+          description={previewDescription("A simple map of who can do what. Fine-grained toggles will appear when your directory is connected.")}
           className="border-white/10"
         >
-          <ul className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.08] bg-[#0c1420]/60">
+          <PreviewSectionNotice message="Preview only — role definitions are not loaded from the settings API yet." />
+          <ul className="mt-3 divide-y divide-white/[0.06] rounded-xl border border-white/[0.08] bg-[#0c1420]/60">
             {roleRows.map((row) => (
               <li key={row.role} className="flex gap-3 px-3 py-3 first:rounded-t-xl last:rounded-b-xl">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06]">

@@ -1,8 +1,16 @@
 import { apiAuthRequest } from "@/lib/api/client";
-import type { ApiListResponse, ApiMember, MembersSummary } from "@/lib/api/types";
+import { unwrapMemberProfile, type MemberScopeResult } from "@/lib/api/member-scope";
+import { unwrapApiList, unwrapApiSummary } from "@/lib/api/normalize";
+import type { ApiMember, MembersSummary } from "@/lib/api/types";
 
-export async function fetchMembersSummary() {
-  return apiAuthRequest<MembersSummary>("/members/summary");
+export async function fetchMyMemberProfile(): Promise<MemberScopeResult> {
+  const response = await apiAuthRequest<unknown>("/members/me");
+  return unwrapMemberProfile(response);
+}
+
+export async function fetchMembersSummary(): Promise<MembersSummary> {
+  const response = await apiAuthRequest<unknown>("/members/summary");
+  return unwrapApiSummary(response);
 }
 
 export async function fetchMembers(params?: { limit?: number; search?: string }) {
@@ -12,11 +20,6 @@ export async function fetchMembers(params?: { limit?: number; search?: string })
 
   const query = searchParams.toString();
   const path = query ? `/members?${query}` : "/members";
-  const response = await apiAuthRequest<ApiListResponse<ApiMember> | ApiMember[]>(path);
-
-  if (Array.isArray(response)) {
-    return response;
-  }
-
-  return response.data ?? response.items ?? response.results ?? [];
+  const response = await apiAuthRequest<unknown>(path);
+  return unwrapApiList<ApiMember>(response);
 }

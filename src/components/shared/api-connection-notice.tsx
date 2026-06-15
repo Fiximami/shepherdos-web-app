@@ -6,6 +6,7 @@ type ApiConnectionNoticeProps = {
   isLive?: boolean;
   liveLabel?: string;
   fallbackLabel?: string;
+  previewLabel?: string;
 };
 
 export function ApiConnectionNotice({
@@ -13,7 +14,8 @@ export function ApiConnectionNotice({
   error,
   isLive,
   liveLabel = "Showing live data from the API.",
-  fallbackLabel = "Showing preview data while the API is unavailable.",
+  fallbackLabel = "Could not load live data. Preview values may appear below.",
+  previewLabel = "Preview mode — sign in with a live account to load API data. Illustrative values may appear below.",
 }: ApiConnectionNoticeProps) {
   if (isLoading) {
     return (
@@ -39,5 +41,9 @@ export function ApiConnectionNotice({
     );
   }
 
-  return null;
+  return (
+    <p className="rounded-lg border border-slate-500/25 bg-slate-500/10 px-3 py-2 text-xs text-slate-300">
+      {previewLabel}
+    </p>
+  );
 }

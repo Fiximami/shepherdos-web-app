@@ -92,6 +92,15 @@ export type SessionRow = {
   recordedBy: string;
 };
 
+export type AttendanceRecordRow = {
+  member: string;
+  event: string;
+  timestamp: string;
+  location: string;
+  status: string;
+  verificationNotes: string;
+};
+
 export type AuditRow = {
   id: string;
   action: string;
@@ -142,6 +151,29 @@ export function mapApiAttendanceSession(session: ApiAttendanceSession): SessionR
     totalPresent: session.totalPresent ?? session.presentCount ?? 0,
     firstTimers: session.firstTimers ?? session.firstTimerCount ?? 0,
     recordedBy: session.recordedBy ?? "—",
+  };
+}
+
+export function mapApiAttendanceRecord(record: Record<string, unknown>): AttendanceRecordRow {
+  const locationValue = record.location;
+  let location = "—";
+
+  if (typeof locationValue === "string") {
+    location = locationValue;
+  } else if (locationValue && typeof locationValue === "object") {
+    const coords = locationValue as { lat?: number; lng?: number };
+    if (coords.lat !== undefined && coords.lng !== undefined) {
+      location = `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
+    }
+  }
+
+  return {
+    member: formatApiValue(record.member ?? record.memberName ?? record.member_id, "—"),
+    event: formatApiValue(record.event ?? record.eventName ?? record.event_id ?? record.session, "—"),
+    timestamp: formatApiValue(record.timestamp ?? record.checkInAt ?? record.createdAt, "—"),
+    location,
+    status: formatApiValue(record.status, "Recorded"),
+    verificationNotes: formatApiValue(record.verificationNotes ?? record.notes ?? record.verification_notes, "—"),
   };
 }
 
@@ -227,6 +259,22 @@ export function mapMemberAttendanceSessionRow(session: ApiAttendanceSession): Me
     branch: mapped.branch,
     attendanceCount: mapped.totalPresent,
     firstTimers: mapped.firstTimers,
+  };
+}
+
+export function mapMyAttendanceHistoryItem(
+  record: Record<string, unknown>,
+  index: number,
+): MemberAttendanceSessionRow {
+  return {
+    sessionName: formatApiValue(
+      record.sessionName ?? record.service ?? record.serviceName ?? record.event ?? record.session,
+      "Service",
+    ),
+    date: formatApiValue(record.date ?? record.attendedAt ?? record.timestamp ?? record.createdAt, "—"),
+    branch: formatApiValue(record.branch ?? record.branchName, "—"),
+    attendanceCount: 1,
+    firstTimers: 0,
   };
 }
 

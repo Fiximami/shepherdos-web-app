@@ -1,10 +1,18 @@
 import { apiAuthRequest } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/errors";
 import { fetchFinanceSummary, fetchFinanceTransactions } from "@/lib/api/finance";
+import { unwrapMemberScope, type MemberScopeResult } from "@/lib/api/member-scope";
+import { unwrapApiList, unwrapApiSummary } from "@/lib/api/normalize";
+
+export async function fetchMyGiving(): Promise<MemberScopeResult> {
+  const response = await apiAuthRequest<unknown>("/giving/me");
+  return unwrapMemberScope(response);
+}
 
 export async function fetchGivingSummary() {
   try {
-    return await apiAuthRequest<Record<string, unknown>>("/giving/summary");
+    const response = await apiAuthRequest<unknown>("/giving/summary");
+    return unwrapApiSummary(response);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return fetchFinanceSummary();
@@ -15,11 +23,8 @@ export async function fetchGivingSummary() {
 
 export async function fetchGivingRecords() {
   try {
-    const response = await apiAuthRequest<Record<string, unknown>[] | { data?: Record<string, unknown>[] }>(
-      "/giving/records",
-    );
-    if (Array.isArray(response)) return response;
-    return response.data ?? [];
+    const response = await apiAuthRequest<unknown>("/giving/records");
+    return unwrapApiList<Record<string, unknown>>(response);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return fetchFinanceTransactions();

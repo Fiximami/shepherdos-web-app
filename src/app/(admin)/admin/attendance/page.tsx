@@ -7,64 +7,24 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { PreviewSectionNotice, previewDescription } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { useApiData } from "@/hooks/use-api-data";
-import { fetchAttendanceSessions, fetchAttendanceSummary } from "@/lib/api/attendance";
+import { fetchAttendanceRecords, fetchAttendanceSessions, fetchAttendanceSummary } from "@/lib/api/attendance";
 import { pickSummaryValue } from "@/lib/api/formatters";
-import { mapApiAttendanceSession, type SessionRow } from "@/lib/api/mappers";
+import { mapApiAttendanceRecord, mapApiAttendanceSession, type SessionRow } from "@/lib/api/mappers";
 import { readSmartAttendanceRecords } from "@/lib/smart-attendance-storage";
 import { cn } from "@/lib/utils";
 
 const fallbackSummaryCardItems = [
-  { label: "Attendance Today", value: "912", note: "Across recorded services" },
-  { label: "This Week", value: "3,441", note: "Cumulative participation" },
-  { label: "This Month", value: "12,860", note: "All branches combined" },
-  { label: "First-Time Guests", value: "47", note: "This month" },
-  { label: "Absentees Needing Follow-up", value: "27", note: "Repeated absence pattern" },
+  { label: "Attendance Today", value: "—", note: "Loads from /attendance/summary" },
+  { label: "This Week", value: "—", note: "Loads from /attendance/summary" },
+  { label: "This Month", value: "—", note: "Loads from /attendance/summary" },
+  { label: "First-Time Guests", value: "—", note: "Loads from /attendance/summary" },
+  { label: "Absentees Needing Follow-up", value: "—", note: "Loads from /attendance/summary" },
 ] as const;
 
-const fallbackSessions: SessionRow[] = [
-  {
-    id: "s-1",
-    service: "Sunday Celebration",
-    date: "2026-04-27",
-    branch: "Main Campus",
-    department: "Choir",
-    totalPresent: 412,
-    firstTimers: 6,
-    recordedBy: "Ps. Emmanuel Boateng",
-  },
-  {
-    id: "s-2",
-    service: "Midweek Prayer",
-    date: "2026-04-24",
-    branch: "North Branch",
-    department: "Prayer Team",
-    totalPresent: 118,
-    firstTimers: 2,
-    recordedBy: "Deborah Afolabi",
-  },
-  {
-    id: "s-3",
-    service: "Youth Gathering",
-    date: "2026-04-20",
-    branch: "Main Campus",
-    department: "Youth Ministry",
-    totalPresent: 94,
-    firstTimers: 5,
-    recordedBy: "Samuel Okoro",
-  },
-  {
-    id: "s-4",
-    service: "Sunday Celebration",
-    date: "2026-04-20",
-    branch: "South Branch",
-    department: "Ushering Team",
-    totalPresent: 267,
-    firstTimers: 4,
-    recordedBy: "Ruth Eze",
-  },
-];
+const fallbackSessions: SessionRow[] = [];
 
 const weeklyTrend = [
   { week: "W1", total: 2980, guests: 38 },
@@ -135,7 +95,34 @@ const smartAttendanceRows: SmartAttendanceRow[] = [
   },
 ];
 
-function smartStatusBadge(status: AttendanceStatus) {
+function buildWeeklyTrendFromSessions(sessions: SessionRow[]) {
+  const buckets = new Map<string, { total: number; guests: number }>();
+
+  for (const session of sessions) {
+    const parsed = new Date(session.date);
+    if (Number.isNaN(parsed.getTime())) continue;
+
+    const weekStart = new Date(parsed);
+    weekStart.setDate(parsed.getDate() - parsed.getDay());
+    const key = weekStart.toISOString().slice(0, 10);
+    const current = buckets.get(key) ?? { total: 0, guests: 0 };
+    current.total += session.totalPresent;
+    current.guests += session.firstTimers;
+    buckets.set(key, current);
+  }
+
+  return [...buckets.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-6)
+    .map(([weekKey, values], index) => ({
+      week: `W${index + 1}`,
+      total: values.total,
+      guests: values.guests,
+      sortKey: weekKey,
+    }));
+}
+
+function smartStatusBadge(status: string) {
   const map: Record<AttendanceStatus, string> = {
     Verified: "border-emerald-500/20 bg-emerald-950/35 text-emerald-100",
     Late: "border-amber-500/25 bg-amber-950/35 text-amber-100",
@@ -143,7 +130,12 @@ function smartStatusBadge(status: AttendanceStatus) {
     "Manual Override": "border-sky-500/25 bg-sky-950/35 text-sky-100",
     "Suspicious Pattern": "border-fuchsia-500/25 bg-fuchsia-950/35 text-fuchsia-100",
   };
-  return map[status];
+
+  if (status in map) {
+    return map[status as AttendanceStatus];
+  }
+
+  return "border-white/10 bg-white/[0.04] text-gray-300";
 }
 
 export default function AdminAttendancePage() {
@@ -153,12 +145,23 @@ export default function AdminAttendancePage() {
 
   const sessionsQuery = useApiData(
     "admin-attendance-sessions",
-    async () => (await fetchAttendanceSessions()).map(mapApiAttendanceSession),
+    async () => {
+      const rows = await fetchAttendanceSessions();
+      return Array.isArray(rows) ? rows.map(mapApiAttendanceSession) : [];
+    },
     fallbackSessions,
   );
   const summaryQuery = useApiData("admin-attendance-summary", fetchAttendanceSummary, {});
+  const recordsQuery = useApiData(
+    "admin-attendance-records",
+    async () => {
+      const rows = await fetchAttendanceRecords();
+      return Array.isArray(rows) ? rows.map(mapApiAttendanceRecord) : [];
+    },
+    [],
+  );
 
-  const sessions = sessionsQuery.data;
+  const sessions = Array.isArray(sessionsQuery.data) ? sessionsQuery.data : fallbackSessions;
   const summaryCardItems = summaryQuery.isLive
     ? [
         {
@@ -191,6 +194,14 @@ export default function AdminAttendancePage() {
 
   const sessionRows =
     departmentFilter === "All Departments" ? sessions : sessions.filter((row) => row.department === departmentFilter);
+
+  const trendChartData = useMemo(() => {
+    if (!sessionsQuery.isLive) return weeklyTrend;
+    const built = buildWeeklyTrendFromSessions(sessions);
+    return built.length > 0 ? built : weeklyTrend;
+  }, [sessions, sessionsQuery.isLive]);
+
+  const apiRecordRows = recordsQuery.isLive && Array.isArray(recordsQuery.data) ? recordsQuery.data : [];
 
   const deptAttendance = [
     { dept: "Choir", present: 146 },
@@ -239,14 +250,18 @@ export default function AdminAttendancePage() {
     setLiveSmartRows(mapped);
   }, []);
 
-  const mergedSmartRows = useMemo(() => [...liveSmartRows, ...smartAttendanceRows], [liveSmartRows]);
+  const mergedSmartRows = useMemo(
+    () => [...liveSmartRows, ...(recordsQuery.isLive ? apiRecordRows : smartAttendanceRows)],
+    [apiRecordRows, liveSmartRows, recordsQuery.isLive],
+  );
 
   return (
     <main className="space-y-5">
       <ApiConnectionNotice
-        isLoading={sessionsQuery.isLoading || summaryQuery.isLoading}
-        error={sessionsQuery.error ?? summaryQuery.error}
-        isLive={sessionsQuery.isLive || summaryQuery.isLive}
+        isLoading={sessionsQuery.isLoading || summaryQuery.isLoading || recordsQuery.isLoading}
+        error={sessionsQuery.error ?? summaryQuery.error ?? recordsQuery.error}
+        isLive={sessionsQuery.isLive || summaryQuery.isLive || recordsQuery.isLive}
+        liveLabel="Showing live data from /attendance/summary, /attendance/sessions, and /attendance/records."
       />
 
       <AdminPageHeader
@@ -276,7 +291,7 @@ export default function AdminAttendancePage() {
 
       <AdminCard
         title="Smart check-in management"
-        description="Leadership review area for member self check-ins, validation outcomes, and trust scoring."
+        description={previewDescription("Leadership review area for member self check-ins, validation outcomes, and trust scoring.")}
       >
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -307,7 +322,11 @@ export default function AdminAttendancePage() {
 
       <AdminCard
         title="Attendance sessions"
-        description="Official counts recorded by approved leaders, with additional member self check-in validation review below."
+        description={
+          sessionsQuery.isLive
+            ? "Official counts from /attendance/sessions."
+            : "Official counts — sign in to load /attendance/sessions."
+        }
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-xs text-gray-400">Department filter:</span>
@@ -335,7 +354,14 @@ export default function AdminAttendancePage() {
               </tr>
             </thead>
             <tbody>
-              {sessionRows.map((row) => (
+              {sessionRows.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-8 text-center text-sm text-gray-400">
+                    {sessionsQuery.isLive ? "No attendance sessions recorded yet." : "Sessions will appear here when /attendance/sessions loads."}
+                  </td>
+                </tr>
+              ) : (
+                sessionRows.map((row) => (
                 <tr key={row.id} className="border-t border-white/10 bg-white/[0.03]">
                   <td className="px-3 py-2 font-medium text-white">{row.service}</td>
                   <td className="px-3 py-2 text-gray-300">
@@ -372,13 +398,14 @@ export default function AdminAttendancePage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </AdminCard>
 
-      <AdminCard title="Attendance by department" description="Quick view of participation signals across ministry departments (mock).">
+      <AdminCard title="Attendance by department" description={previewDescription("Quick view of participation signals across ministry departments.")}>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {deptAttendance.map((row) => (
             <div key={row.dept} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5">
@@ -390,10 +417,17 @@ export default function AdminAttendancePage() {
         </div>
       </AdminCard>
 
-      <AdminCard title="Participation trend" description="Weekly total attendance with first-time guest overlay (mock).">
+      <AdminCard
+        title="Participation trend"
+        description={
+          sessionsQuery.isLive
+            ? "Weekly totals derived from /attendance/sessions."
+            : previewDescription("Weekly total attendance with first-time guest overlay.")
+        }
+      >
         <div className="h-64 w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={weeklyTrend} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+            <AreaChart data={trendChartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
               <defs>
                 <linearGradient id="adminAttendanceTotal" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="rgb(59 130 246 / 0.35)" stopOpacity={1} />
@@ -429,8 +463,9 @@ export default function AdminAttendancePage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <AdminCard
           title="Absentee care"
-          description="People who may need a gentle check-in after repeated absence—not a blame list, but a care signal."
+          description={previewDescription("People who may need a gentle check-in after repeated absence—not a blame list, but a care signal.")}
         >
+          <PreviewSectionNotice message="Preview only — absentee follow-up lists are not connected to a backend endpoint yet." />
           <ul className="space-y-2">
             {absentees.map((row) => (
               <li
@@ -484,8 +519,15 @@ export default function AdminAttendancePage() {
 
       <AdminCard
         title="Smart member check-in validation"
-        description="Validated attendance records with trust signals from time, location, and behavior checks."
+        description={
+          recordsQuery.isLive
+            ? "Validated attendance records from /attendance/records, plus any local self check-ins on this device."
+            : previewDescription("Validated attendance records with trust signals from time, location, and behavior checks.")
+        }
       >
+        {!recordsQuery.isLive ? (
+          <PreviewSectionNotice message="Preview rows below until /attendance/records loads. Local self check-ins from this browser still appear when present." />
+        ) : null}
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full min-w-[1080px] border-collapse text-sm">
             <thead className="bg-white/[0.06] text-gray-300">
@@ -527,7 +569,7 @@ export default function AdminAttendancePage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <AdminCard
           title="Flagged / suspicious members"
-          description="Basic pattern detection flags repeated mismatch, instant check-ins, and inconsistent attendance behavior."
+          description={previewDescription("Basic pattern detection flags repeated mismatch, instant check-ins, and inconsistent attendance behavior.")}
         >
           <ul className="space-y-2">
             {mergedSmartRows
@@ -544,7 +586,7 @@ export default function AdminAttendancePage() {
 
         <AdminCard
           title="Location mismatch indicators"
-          description="Entries requiring leader review before attendance trust score is increased."
+          description={previewDescription("Entries requiring leader review before attendance trust score is increased.")}
         >
           <ul className="space-y-2">
             {mergedSmartRows
@@ -562,8 +604,9 @@ export default function AdminAttendancePage() {
 
       <AdminCard
         title="Member trust score review"
-        description="Simple confidence scoring for attendance integrity to help leadership prioritize review and pastoral follow-up."
+        description={previewDescription("Simple confidence scoring for attendance integrity to help leadership prioritize review and pastoral follow-up.")}
       >
+        <PreviewSectionNotice message="Preview only — trust scores are not connected to a backend endpoint yet." />
         <div className="space-y-2.5">
           {trustRows.map((row) => (
             <div key={row.member} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5">

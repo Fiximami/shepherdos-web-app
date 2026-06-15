@@ -19,15 +19,19 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SummaryCard } from "@/components/dashboard/shared/summary-card";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
+import { PreviewSectionNotice } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiData } from "@/hooks/use-api-data";
-import { fetchAttendanceSessions, fetchAttendanceSummary } from "@/lib/api/attendance";
+import { fetchMyAttendance } from "@/lib/api/attendance";
 import { pickSummaryValue } from "@/lib/api/formatters";
 import {
-  mapMemberAttendanceSessionRow,
+  mapMyAttendanceHistoryItem,
   type MemberAttendanceSessionRow,
 } from "@/lib/api/mappers";
+import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
+import { useAuth } from "@/providers/auth-provider";
 
 const fallbackTrendData = [
   { label: "Jan", total: 298, guests: 14 },
@@ -38,40 +42,19 @@ const fallbackTrendData = [
   { label: "Jun", total: 336, guests: 16 },
 ];
 
-const fallbackSessions: MemberAttendanceSessionRow[] = [
+const demoSessions: MemberAttendanceSessionRow[] = [
   {
     sessionName: "Sunday Celebration",
     date: "2026-04-20",
     branch: "Main Campus",
-    attendanceCount: 412,
-    firstTimers: 6,
+    attendanceCount: 1,
+    firstTimers: 0,
   },
   {
     sessionName: "Midweek Prayer",
     date: "2026-04-16",
     branch: "North Branch",
-    attendanceCount: 118,
-    firstTimers: 2,
-  },
-  {
-    sessionName: "Youth Gathering",
-    date: "2026-04-13",
-    branch: "Main Campus",
-    attendanceCount: 94,
-    firstTimers: 5,
-  },
-  {
-    sessionName: "Sunday Celebration",
-    date: "2026-04-13",
-    branch: "South Branch",
-    attendanceCount: 267,
-    firstTimers: 4,
-  },
-  {
-    sessionName: "Workers' Briefing",
-    date: "2026-04-10",
-    branch: "Main Campus",
-    attendanceCount: 56,
+    attendanceCount: 1,
     firstTimers: 0,
   },
 ];
@@ -134,49 +117,92 @@ const columns: ColumnDef<MemberAttendanceSessionRow>[] = [
 ];
 
 export function AttendancePageView() {
-  const sessionsQuery = useApiData(
-    "member-attendance-sessions",
-    async () => (await fetchAttendanceSessions()).map(mapMemberAttendanceSessionRow),
-    fallbackSessions,
-  );
-  const summaryQuery = useApiData("member-attendance-summary", fetchAttendanceSummary, {});
+  const { isDemo } = useAuth();
+  const attendanceQuery = useApiData("member-attendance-me", fetchMyAttendance, EMPTY_MEMBER_SCOPE);
 
-  const sessionsData = sessionsQuery.data;
+  const isLinked = attendanceQuery.isLive && attendanceQuery.data.linked;
+
+  const sessionsData = useMemo(() => {
+    if (isDemo) return demoSessions;
+    if (!isLinked) return [];
+    return attendanceQuery.data.items.map((item, index) =>
+      mapMyAttendanceHistoryItem(item as Record<string, unknown>, index),
+    );
+  }, [attendanceQuery.data.items, isDemo, isLinked]);
+
   const trendData = useMemo(() => {
-    if (!sessionsQuery.isLive) return fallbackTrendData;
+    if (isDemo) return fallbackTrendData;
+    if (!isLinked) return [];
     const built = buildTrendFromSessions(sessionsData);
-    return built.length > 0 ? built : fallbackTrendData;
-  }, [sessionsData, sessionsQuery.isLive]);
+    return built;
+  }, [isDemo, isLinked, sessionsData]);
 
-  const summaryCards = useMemo(
-    () => [
+  const summaryCards = useMemo(() => {
+    if (isDemo) {
+      return [
+        {
+          label: "Services this week",
+          value: "2",
+          detail: "Your recorded attendance",
+          icon: CalendarCheck2,
+        },
+        {
+          label: "Services this month",
+          value: "8",
+          detail: "Your participation history",
+          icon: CalendarDays,
+        },
+        {
+          label: "Total sessions",
+          value: "24",
+          detail: "All time on your record",
+          icon: Sparkles,
+        },
+        {
+          label: "Latest attendance",
+          value: "Present",
+          detail: "Most recent service",
+          icon: UserRoundPlus,
+        },
+      ];
+    }
+
+    if (!isLinked) {
+      return [
+        { label: "Services this week", value: "—", detail: "Your recorded attendance", icon: CalendarCheck2 },
+        { label: "Services this month", value: "—", detail: "Your participation history", icon: CalendarDays },
+        { label: "Total sessions", value: "—", detail: "All time on your record", icon: Sparkles },
+        { label: "Latest attendance", value: "—", detail: "Most recent service", icon: UserRoundPlus },
+      ];
+    }
+
+    return [
       {
-        label: "Attendance Today",
-        value: pickSummaryValue(summaryQuery.data, ["today", "attendanceToday", "todayCount"], "284"),
-        detail: "Across recorded services so far",
+        label: "Services this week",
+        value: pickSummaryValue(attendanceQuery.data.summary, ["thisWeek", "weekCount", "sessionsThisWeek"], "0"),
+        detail: "Your recorded attendance",
         icon: CalendarCheck2,
       },
       {
-        label: "This Week",
-        value: pickSummaryValue(summaryQuery.data, ["thisWeek", "weekCount"], "947"),
-        detail: "Including midweek and youth",
+        label: "Services this month",
+        value: pickSummaryValue(attendanceQuery.data.summary, ["thisMonth", "monthCount", "sessionsThisMonth"], "0"),
+        detail: "Your participation history",
         icon: CalendarDays,
       },
       {
-        label: "This Month",
-        value: pickSummaryValue(summaryQuery.data, ["thisMonth", "monthCount"], "3,892"),
-        detail: "Steady pace compared to last month",
+        label: "Total sessions",
+        value: pickSummaryValue(attendanceQuery.data.summary, ["totalSessions", "total", "count"], "0"),
+        detail: "All time on your record",
         icon: Sparkles,
       },
       {
-        label: "First-Time Guests",
-        value: pickSummaryValue(summaryQuery.data, ["firstTimers", "firstTimeGuests"], "22"),
-        detail: "Invited into follow-up this month",
+        label: "Latest attendance",
+        value: pickSummaryValue(attendanceQuery.data.summary, ["latestStatus", "lastStatus"], "—"),
+        detail: "Most recent service",
         icon: UserRoundPlus,
       },
-    ],
-    [summaryQuery.data],
-  );
+    ];
+  }, [attendanceQuery.data.summary, isDemo, isLinked]);
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
@@ -189,7 +215,7 @@ export function AttendancePageView() {
     <main className="mx-auto w-full max-w-7xl p-4 sm:p-5 lg:p-6">
       <PageHeader
         title="Attendance"
-        description="See how your church is gathering—participation, care moments, and gentle signals for follow-up—without losing the human story behind the numbers."
+        description="See your personal participation history and gentle signals for follow-up—without losing the human story behind the numbers."
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" className="h-10 rounded-xl">
@@ -205,10 +231,13 @@ export function AttendancePageView() {
       />
 
       <ApiConnectionNotice
-        isLoading={sessionsQuery.isLoading || summaryQuery.isLoading}
-        error={sessionsQuery.error ?? summaryQuery.error}
-        isLive={sessionsQuery.isLive || summaryQuery.isLive}
+        isLoading={attendanceQuery.isLoading}
+        error={attendanceQuery.error}
+        isLive={attendanceQuery.isLive}
+        liveLabel="Showing your personal attendance from /attendance/me."
       />
+
+      {attendanceQuery.isLive && !attendanceQuery.data.linked ? <MemberLinkedNotice /> : null}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
@@ -277,8 +306,7 @@ export function AttendancePageView() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base sm:text-lg">Recent sessions</CardTitle>
             <CardDescription>
-              A short list of recent gatherings—enough context to plan care, not enough
-              noise to overwhelm.
+              Your personal attendance history—services you have been recorded at.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -304,7 +332,18 @@ export function AttendancePageView() {
                   ))}
                 </thead>
                 <tbody>
-                  {table.getRowModel().rows.map((row) => (
+                  {table.getRowModel().rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                        {isLinked
+                          ? "No attendance history recorded for your profile yet."
+                          : isDemo
+                            ? "Preview attendance rows appear in demo mode."
+                            : "Your attendance history will appear here when /attendance/me loads."}
+                      </td>
+                    </tr>
+                  ) : (
+                    table.getRowModel().rows.map((row) => (
                     <tr key={row.id} className="border-t border-border/60 bg-background/55">
                       {row.getVisibleCells().map((cell) => (
                         <td key={cell.id} className="px-3 py-2.5 align-top text-foreground">
@@ -312,7 +351,8 @@ export function AttendancePageView() {
                         </td>
                       ))}
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -325,12 +365,12 @@ export function AttendancePageView() {
           <CardHeader>
             <CardTitle className="text-base sm:text-lg">Attendance insights</CardTitle>
             <CardDescription>
-              Plain-language observations from recent patterns—written the way a
-              thoughtful leader might speak after reviewing the week.
+              Plain-language observations from your recent patterns—preview until analytics are connected.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+            <PreviewSectionNotice />
+            <ul className="mt-3 space-y-3 text-sm leading-relaxed text-muted-foreground">
               {insightLines.map((line) => (
                 <li key={line} className="flex gap-3">
                   <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary/50" />
