@@ -12,6 +12,8 @@ This document describes how the `shepherdos-web-app` frontend is configured for 
 
 ## Vercel environment variables
 
+**Full setup guide:** [VERCEL_PRODUCTION.md](./VERCEL_PRODUCTION.md)
+
 Set these in the Vercel project for **Production**:
 
 ```env
@@ -23,8 +25,10 @@ NEXT_PUBLIC_ALPHA_MODE=true
 NEXT_PUBLIC_SHOW_PREVIEW_ROUTES=false
 NEXT_PUBLIC_ENABLE_DEMO_MODE=false
 NEXT_PUBLIC_ENABLE_PASSWORD_RESET=false
-NEXT_PUBLIC_CHURCH_SLUG=<your-alpha-church-slug>
+NEXT_PUBLIC_CHURCH_SLUG=alpha-grace-church
 ```
+
+**Production branch (current):** `setup/webapp-foundation` — set in Vercel → Settings → Git until merged to `main`.
 
 ### Local development
 
