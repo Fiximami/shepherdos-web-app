@@ -1,4 +1,5 @@
 import { AUTH_COOKIE_NAME, AUTH_TOKEN_STORAGE_KEY, DEMO_MODE_STORAGE_KEY } from "@/lib/api/config";
+import { isDemoModeAllowed } from "@/lib/config/product";
 
 function canUseBrowserStorage() {
   return typeof window !== "undefined";
@@ -23,12 +24,12 @@ export function clearAccessToken() {
 }
 
 export function isDemoModeEnabled(): boolean {
-  if (!canUseBrowserStorage()) return false;
+  if (!canUseBrowserStorage() || !isDemoModeAllowed()) return false;
   return window.sessionStorage.getItem(DEMO_MODE_STORAGE_KEY) === "1";
 }
 
 export function enableDemoMode() {
-  if (!canUseBrowserStorage()) return;
+  if (!canUseBrowserStorage() || !isDemoModeAllowed()) return;
   clearAccessToken();
   window.sessionStorage.setItem(DEMO_MODE_STORAGE_KEY, "1");
 }

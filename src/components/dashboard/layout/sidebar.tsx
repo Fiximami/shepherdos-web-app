@@ -3,6 +3,7 @@
 import {
   Bell,
   CalendarDays,
+  ClipboardCheck,
   Compass,
   Church,
   Gift,
@@ -12,15 +13,20 @@ import {
   MessageCircleHeart,
   MessagesSquare,
   NotebookPen,
+  Receipt,
   ShoppingBag,
   Settings,
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType } from "react";
+import { useMemo } from "react";
 
+import { PreviewBadge } from "@/components/shared/preview-badge";
+import { useDisplayIdentity } from "@/hooks/use-display-identity";
+import { getRouteBadge, isPathAvailable } from "@/lib/config/alpha-routes";
+import { getProductName } from "@/lib/config/product";
 import { routes } from "@/lib/constants/navigation";
-import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 
 type MemberSidebarItem = {
@@ -33,17 +39,19 @@ type MemberSidebarItem = {
 const memberSidebarItems: MemberSidebarItem[] = [
   { id: "dashboard", label: "My Dashboard", href: routes.app.dashboard, icon: LayoutGrid },
   { id: "profile", label: "My Profile", href: routes.app.profile, icon: CircleUserRound },
+  { id: "attendance", label: "Attendance", href: routes.app.attendance, icon: ClipboardCheck },
+  { id: "finance", label: "Finance", href: routes.app.finance, icon: Receipt },
+  { id: "giving", label: "Giving", href: routes.app.giving, icon: Wallet },
+  { id: "settings", label: "Settings", href: routes.app.settings, icon: Settings },
   { id: "feed", label: "Community Feed", href: routes.app.feed, icon: MessageCircleHeart },
   { id: "events", label: "Events", href: routes.app.events, icon: CalendarDays },
   { id: "prayer-requests", label: "Prayer Requests", href: routes.app.prayerRequests, icon: HeartHandshake },
   { id: "counselling", label: "Counselling", href: routes.app.counselling, icon: Compass },
-  { id: "giving", label: "Giving", href: routes.app.giving, icon: Wallet },
   { id: "store", label: "Store", href: routes.app.store, icon: ShoppingBag },
   { id: "celebrations", label: "My Celebrations", href: routes.app.celebrations, icon: Gift },
   { id: "notifications", label: "Notifications", href: routes.app.notifications, icon: Bell },
   { id: "messages", label: "Messages", href: routes.app.messages, icon: MessagesSquare },
-  { id: "settings", label: "Settings", href: routes.app.settings, icon: Settings },
-] as const;
+];
 
 type SidebarProps = {
   currentPath: string;
@@ -52,7 +60,14 @@ type SidebarProps = {
 };
 
 export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
-  const currentUser = useCurrentUser();
+  const { displayName, firstName, churchName } = useDisplayIdentity();
+  const welcomeName = firstName || displayName;
+  const productName = getProductName();
+
+  const visibleItems = useMemo(
+    () => memberSidebarItems.filter((item) => isPathAvailable(item.href, "member")),
+    [],
+  );
 
   return (
     <aside
@@ -66,7 +81,7 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
           <Church className="size-4" aria-hidden />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white">ShepherdOS</p>
+          <p className="text-sm font-semibold text-white">{productName}</p>
           <p className="text-xs text-gray-400">Member portal</p>
         </div>
       </div>
@@ -76,8 +91,9 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {memberSidebarItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = !item.href.includes("#") && currentPath === item.href;
+          const badge = getRouteBadge(item.href, "member");
           return (
             <Link
               key={item.id}
@@ -92,14 +108,15 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
             >
               <item.icon
                 className={cn(
-                  "size-4",
+                  "size-4 shrink-0",
                   isActive
                     ? "text-primary"
                     : "text-gray-400 group-hover:text-white",
                 )}
                 aria-hidden
               />
-              <span className="font-medium">{item.label}</span>
+              <span className="min-w-0 flex-1 font-medium">{item.label}</span>
+              {badge ? <PreviewBadge label={badge} /> : null}
             </Link>
           );
         })}
@@ -111,8 +128,10 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
             <NotebookPen className="size-3.5" aria-hidden />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-xs font-semibold text-white">Welcome, {currentUser.name.split(" ")[0]}</p>
-            <p className="truncate text-[11px] text-gray-400">{currentUser.churchName} member</p>
+            <p className="truncate text-xs font-semibold text-white">Welcome, {welcomeName}</p>
+            <p className="truncate text-[11px] text-gray-400">
+              {churchName ? `${churchName} member` : "Member"}
+            </p>
           </div>
         </div>
       </div>

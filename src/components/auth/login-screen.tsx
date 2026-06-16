@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getProductName } from "@/lib/config/product";
 
 import { authElevatedCardClassName } from "./auth-styles";
 import { LoginForm } from "./login-form";
@@ -17,6 +18,7 @@ import { AuthAmbientBackdrop } from "./layout/auth-ambient-backdrop";
 import { AuthBrandLockup } from "./layout/auth-brand-lockup";
 
 export function LoginScreen() {
+  const productName = getProductName();
   // Replace this placeholder number with your real WhatsApp support line.
   const whatsappSupportUrl = "https://wa.me/233XXXXXXXXX";
 
@@ -31,7 +33,7 @@ export function LoginScreen() {
               icon={
                 <Image
                   src="/images/branding/shepherdos-logo.png"
-                  alt="ShepherdOS logo"
+                  alt={`${productName} logo`}
                   width={28}
                   height={28}
                   className="size-7 object-contain"
@@ -45,7 +47,7 @@ export function LoginScreen() {
             A calmer way to care for your church&apos;s day-to-day.
           </h1>
           <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-            ShepherdOS brings members, attendance, finances, communication, and
+            {productName} brings members, attendance, finances, communication, and
             growth into one gentle rhythm—so leaders can focus on people, not
             paperwork.
           </p>
@@ -90,7 +92,7 @@ export function LoginScreen() {
         href={whatsappSupportUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Chat with ShepherdOS on WhatsApp"
+        aria-label={`Chat with ${productName} on WhatsApp`}
         className="fixed bottom-4 left-4 z-20 inline-flex h-11 items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 text-sm font-medium text-emerald-800 shadow-[0_10px_24px_-14px_rgba(16,185,129,0.7)] backdrop-blur transition-colors hover:bg-emerald-500/15 dark:text-emerald-300"
       >
         <MessageCircle className="size-4" aria-hidden />

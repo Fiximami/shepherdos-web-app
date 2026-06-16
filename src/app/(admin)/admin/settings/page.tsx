@@ -24,6 +24,7 @@ import { useApiData } from "@/hooks/use-api-data";
 import { formatApiValue, pickSummaryValue } from "@/lib/api/formatters";
 import { fetchChurchSettings, fetchProfileSettings, fetchSettings } from "@/lib/api/settings";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { cn } from "@/lib/utils";
 
 const settingCategories = [
@@ -79,6 +80,7 @@ const brandColors = [
 export default function AdminSettingsPage() {
   const [feedback, setFeedback] = useState("");
   const currentUser = useCurrentUser();
+  const { displayName } = useDisplayIdentity();
   const settingsQuery = useApiData("admin-settings", fetchSettings, {});
   const churchSettingsQuery = useApiData("admin-settings-church", fetchChurchSettings, {});
   const profileSettingsQuery = useApiData("admin-settings-profile", fetchProfileSettings, {});
@@ -108,7 +110,7 @@ export default function AdminSettingsPage() {
     ["address", "location"],
     "—",
   );
-  const adminContactName = pickSummaryValue(profileSettings, ["name", "fullName", "adminName"], currentUser.name);
+  const adminContactName = pickSummaryValue(profileSettings, ["name", "fullName", "adminName"], displayName);
   const adminContactEmail = pickSummaryValue(profileSettings, ["email"], currentUser.email);
 
   const settingsLive = settingsQuery.isLive || churchSettingsQuery.isLive || profileSettingsQuery.isLive;

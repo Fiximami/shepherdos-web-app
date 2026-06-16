@@ -21,6 +21,7 @@ import {
   hasAuthenticatedSession,
   isDemoModeEnabled,
 } from "@/lib/api/token-storage";
+import { isDemoModeAllowed } from "@/lib/config/product";
 import { getDemoSessionUser, mapApiUserToSession } from "@/lib/auth/map-user";
 import { setSessionUser } from "@/lib/auth/session-store";
 import { routes } from "@/lib/constants/navigation";
@@ -65,6 +66,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refresh = useCallback(async () => {
     if (isDemoModeEnabled()) {
+      if (!isDemoModeAllowed()) {
+        disableDemoMode();
+        applyUser(null);
+        setIsDemo(false);
+        setStatus("unauthenticated");
+        return;
+      }
       applyUser(getDemoSessionUser());
       setIsDemo(true);
       setStatus("authenticated");

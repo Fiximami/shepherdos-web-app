@@ -1,18 +1,11 @@
 import type { ApiUser, SessionUser } from "@/lib/api/types";
+import {
+  resolveChurchLogo,
+  resolveChurchName,
+  resolveDisplayName,
+  resolveRoleLabel,
+} from "@/lib/auth/display-identity";
 import { availablePermissions, mockUser, type Permission } from "@/lib/mock-user";
-
-const roleLabels: Record<string, string> = {
-  member: "Member",
-  pastor: "Pastor",
-  finance: "Finance Officer",
-  finance_officer: "Finance Officer",
-  admin: "Church Admin",
-  church_admin: "Church Admin",
-  owner: "Church Owner",
-  church_owner: "Church Owner",
-  leader: "Leader",
-  ministry_leader: "Ministry Leader",
-};
 
 function isPermission(value: string): value is Permission {
   return (availablePermissions as readonly string[]).includes(value);
@@ -20,27 +13,43 @@ function isPermission(value: string): value is Permission {
 
 function normalizePermissions(permissions: string[] | undefined): Permission[] {
   if (!permissions?.length) {
-    return mockUser.permissions;
+    return [];
   }
 
-  const normalized = permissions.filter(isPermission);
-  return normalized.length > 0 ? normalized : mockUser.permissions;
+  return permissions.filter(isPermission);
 }
 
 export function mapApiUserToSession(user: ApiUser): SessionUser {
-  const role = user.role ?? mockUser.role;
-  const churchName = user.church?.name ?? user.churchName ?? mockUser.churchName;
-  const churchLogo = user.church?.logoUrl ?? user.church?.logo ?? user.churchLogo ?? mockUser.churchLogo;
+  const role = user.role?.trim() || "member";
+  const churchName = resolveChurchName({ church: user.church, churchName: user.churchName });
+  const churchLogo = resolveChurchLogo({ church: user.church, churchLogo: user.churchLogo });
 
   return {
-    id: user.id ?? mockUser.id,
-    email: user.email ?? "",
-    name: user.name ?? user.fullName ?? mockUser.name,
+    id: user.id?.trim() || "",
+    email: user.email?.trim() || "",
+    name: resolveDisplayName({
+      name: user.name,
+      fullName: user.fullName,
+      email: user.email,
+    }),
     role,
-    roleLabel: user.roleLabel ?? roleLabels[role] ?? "Team Member",
+    roleLabel: resolveRoleLabel(role, user.roleLabel),
     churchName,
     churchLogo,
     permissions: normalizePermissions(user.permissions),
+  };
+}
+
+export function getEmptySessionUser(): SessionUser {
+  return {
+    id: "",
+    name: "Member",
+    email: "",
+    role: "member",
+    roleLabel: "Member",
+    churchName: "",
+    churchLogo: "",
+    permissions: [],
   };
 }
 

@@ -1,6 +1,12 @@
+import { getProductName, getProductTagline } from "@/lib/config/product";
+
 export const dashboardCopy = {
-  productName: "ShepherdOS",
-  tagline: "Church operations, cared for well.",
+  get productName() {
+    return getProductName();
+  },
+  get tagline() {
+    return getProductTagline();
+  },
 } as const;
 
 export const dashboardSections = {

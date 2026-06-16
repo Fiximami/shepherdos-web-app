@@ -4,17 +4,9 @@ import { LogOut, Settings, UserCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { resolveRoleLabel } from "@/lib/auth/display-identity";
 import { routes } from "@/lib/constants/navigation";
 import { useAuth } from "@/providers/auth-provider";
-
-const roleLabels: Record<string, string> = {
-  member: "Member",
-  pastor: "Pastor",
-  finance: "Finance Officer",
-  admin: "Church Admin",
-  owner: "Church Owner",
-  leader: "Leader",
-};
 
 type UserMenuProps = {
   name: string;
@@ -28,7 +20,7 @@ export function UserMenu({ name, role, roleLabel, workspace }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const resolvedRoleLabel = useMemo(
-    () => roleLabel ?? roleLabels[role] ?? "Team Member",
+    () => resolveRoleLabel(role, roleLabel),
     [role, roleLabel],
   );
 

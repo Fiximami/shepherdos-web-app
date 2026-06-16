@@ -20,6 +20,7 @@ import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
 import { PreviewSectionNotice } from "@/components/shared/preview-section-notice";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiData } from "@/hooks/use-api-data";
+import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { useMemberProfileFields } from "@/hooks/use-member-profile-fields";
 import { fetchMyAttendance } from "@/lib/api/attendance";
 import { pickSummaryCurrency, pickSummaryValue } from "@/lib/api/formatters";
@@ -64,11 +65,12 @@ const demoAttendanceCards = [
 
 export function DashboardHome() {
   const { isDemo } = useAuth();
+  const { firstName } = useDisplayIdentity();
   const { user, isAuthenticatedLive, isLinked, memberQuery, fields } = useMemberProfileFields();
   const attendanceQuery = useApiData("member-dashboard-attendance-me", fetchMyAttendance, EMPTY_MEMBER_SCOPE);
   const givingQuery = useApiData("member-dashboard-giving-me", fetchMyGiving, EMPTY_MEMBER_SCOPE);
 
-  const welcomeName = user.name.split(" ")[0];
+  const welcomeName = firstName;
   const liveDataLoading = attendanceQuery.isLoading || givingQuery.isLoading || memberQuery.isLoading;
   const liveDataError = attendanceQuery.error ?? givingQuery.error ?? memberQuery.error;
   const liveDataConnected = attendanceQuery.isLive || givingQuery.isLive || memberQuery.isLive;

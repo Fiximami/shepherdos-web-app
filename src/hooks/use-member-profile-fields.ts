@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { pickSummaryValue } from "@/lib/api/formatters";
 import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
 import { fetchMyMemberProfile } from "@/lib/api/members";
+import { resolveDisplayName } from "@/lib/auth/display-identity";
 import { getDemoSessionUser } from "@/lib/auth/map-user";
 import { useApiData } from "@/hooks/use-api-data";
 import { useAuth } from "@/providers/auth-provider";
@@ -28,9 +29,25 @@ export function useMemberProfileFields() {
   const memberQuery = useApiData("member-profile-me", fetchMyMemberProfile, EMPTY_MEMBER_SCOPE);
 
   const isAuthenticatedLive = status === "authenticated" && !isDemo && Boolean(user);
-  const displayUser = isAuthenticatedLive && user ? user : getDemoSessionUser();
+  const demoUser = getDemoSessionUser();
   const profileData = memberQuery.data.profile;
   const isLinked = memberQuery.isLive && memberQuery.data.linked;
+
+  const displayName = useMemo(() => {
+    if (!isAuthenticatedLive || !user) return demoUser.name;
+
+    const profileName = isLinked ? pickSummaryValue(profileData, ["name", "fullName"], "") : "";
+    return resolveDisplayName({
+      name: profileName || user.name,
+      fullName: user.name,
+      email: user.email,
+    });
+  }, [demoUser.name, isAuthenticatedLive, isLinked, profileData, user]);
+
+  const displayUser = useMemo(() => {
+    if (!isAuthenticatedLive || !user) return demoUser;
+    return { ...user, name: displayName };
+  }, [demoUser, displayName, isAuthenticatedLive, user]);
 
   const fields = useMemo(() => {
     if (!isAuthenticatedLive) {
@@ -82,6 +99,7 @@ export function useMemberProfileFields() {
 
   return {
     user: displayUser,
+    displayName,
     isAuthenticatedLive,
     isLinked,
     memberQuery,

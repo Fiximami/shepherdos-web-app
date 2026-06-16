@@ -1,12 +1,24 @@
 import type { Metadata } from "next";
 
 import { AuthProvider } from "@/providers/auth-provider";
+import { getAppUrl, getProductName, getProductTagline } from "@/lib/config/product";
 
 import "./globals.css";
 
+const productName = getProductName();
+
 export const metadata: Metadata = {
-  title: "ShepherdOS",
-  description: "Church operations platform for pastors, teams, and members.",
+  metadataBase: new URL(getAppUrl()),
+  title: {
+    default: productName,
+    template: `%s · ${productName}`,
+  },
+  description: getProductTagline(),
+  robots: {
+    index: false,
+    follow: false,
+  },
+  applicationName: productName,
 };
 
 export default function RootLayout({

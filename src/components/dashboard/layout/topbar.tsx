@@ -11,6 +11,8 @@ import { QuickActions } from "@/components/dashboard/layout/quick-actions";
 import { UserMenu } from "@/components/dashboard/layout/user-menu";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useDisplayIdentity } from "@/hooks/use-display-identity";
+import { getProductName, showPreviewRoutes } from "@/lib/config/product";
 import { cn } from "@/lib/utils";
 
 type TopbarProps = {
@@ -28,9 +30,12 @@ export function Topbar({
 }: TopbarProps) {
   const [logoMissing, setLogoMissing] = useState(false);
   const currentUser = useCurrentUser();
+  const { displayName, churchName, churchLogo, roleLabel } = useDisplayIdentity();
 
   const role = currentUser.role;
   const permissions = currentUser.permissions;
+  const productName = getProductName();
+  const showSearch = showPreviewRoutes();
   const canAccessLeadershipConsole = useMemo(
     () =>
       showLeadershipConsole &&
@@ -61,10 +66,10 @@ export function Topbar({
         <div className="min-w-[220px]">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/12 bg-white/[0.08] p-1">
-            {currentUser.churchLogo && !logoMissing ? (
+            {churchLogo && !logoMissing ? (
               <Image
-                src={currentUser.churchLogo}
-                alt={`${currentUser.churchName} logo`}
+                src={churchLogo}
+                alt={churchName ? `${churchName} logo` : "Church logo"}
                 fill
                 sizes="40px"
                 className="object-contain"
@@ -72,7 +77,7 @@ export function Topbar({
               />
             ) : (
               <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">
-                {currentUser.churchName
+                {(churchName || "SO")
                   .split(" ")
                   .map((word) => word[0])
                   .join("")
@@ -83,17 +88,17 @@ export function Topbar({
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold tracking-tight text-white">
-                {currentUser.churchName}
+                {churchName || productName}
               </p>
               <p className="truncate text-xs text-gray-400">
-                {title} · ShepherdOS workspace
+                {title} · {productName} workspace
               </p>
             </div>
           </div>
         </div>
 
         <div className="hidden min-w-0 px-2 md:flex md:justify-center">
-          <GlobalSearch />
+          {showSearch ? <GlobalSearch /> : null}
         </div>
 
         <div className="ml-auto flex items-center gap-2.5">
@@ -116,10 +121,10 @@ export function Topbar({
 
           <NotificationsMenu role={role} />
           <UserMenu
-            name={currentUser.name}
+            name={displayName}
             role={role}
-            roleLabel={currentUser.roleLabel}
-            workspace={currentUser.churchName}
+            roleLabel={roleLabel}
+            workspace={churchName || "Member workspace"}
           />
         </div>
       </div>

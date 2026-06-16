@@ -23,8 +23,12 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 
-import { useCurrentUser } from "@/hooks/use-current-user";
+import { PreviewBadge } from "@/components/shared/preview-badge";
+import { useDisplayIdentity } from "@/hooks/use-display-identity";
+import { getRouteBadge, isPathAvailable } from "@/lib/config/alpha-routes";
+import { getProductName } from "@/lib/config/product";
 import { hasAnyPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -52,21 +56,31 @@ const adminNav = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const currentUser = useCurrentUser();
-  const visibleNav = adminNav.filter((item) => {
-    if (!("requiredAny" in item) || !item.requiredAny) return true;
-    return hasAnyPermission(item.requiredAny);
-  });
+  const { churchName, churchLogo } = useDisplayIdentity();
+  const productName = getProductName();
+  const visibleNav = useMemo(
+    () =>
+      adminNav.filter((item) => {
+        if (!isPathAvailable(item.href, "admin")) {
+          return false;
+        }
+        if (!("requiredAny" in item) || !item.requiredAny) {
+          return true;
+        }
+        return hasAnyPermission(item.requiredAny);
+      }),
+    [],
+  );
 
   return (
     <aside className="flex h-full w-full flex-col rounded-2xl border border-white/10 bg-[#0e2237]/85 shadow-[0_20px_46px_-30px_rgba(0,0,0,0.72)] backdrop-blur-xl">
       <div className="border-b border-white/10 px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.06] p-1">
-            {currentUser.churchLogo ? (
+            {churchLogo ? (
               <Image
-                src={currentUser.churchLogo}
-                alt={`${currentUser.churchName} logo`}
+                src={churchLogo}
+                alt={churchName ? `${churchName} logo` : "Church logo"}
                 fill
                 sizes="40px"
                 className="object-contain"
@@ -76,7 +90,7 @@ export function AdminSidebar() {
             )}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{currentUser.churchName}</p>
+            <p className="truncate text-sm font-semibold text-white">{churchName || productName}</p>
             <p className="text-xs text-blue-100/80">Leadership Console</p>
           </div>
         </div>
@@ -95,6 +109,7 @@ export function AdminSidebar() {
         </p>
         {visibleNav.map((item) => {
           const isActive = pathname === item.href;
+          const badge = getRouteBadge(item.href, "admin");
           return (
             <Link
               key={item.href}
@@ -106,8 +121,9 @@ export function AdminSidebar() {
                   : "border border-transparent text-gray-300 hover:-translate-y-[1px] hover:border-white/10 hover:bg-white/[0.08] hover:text-white",
               )}
             >
-              <item.icon className="size-4 text-gray-300 group-hover:text-white" aria-hidden />
-              <span className="font-medium">{item.label}</span>
+              <item.icon className="size-4 shrink-0 text-gray-300 group-hover:text-white" aria-hidden />
+              <span className="min-w-0 flex-1 font-medium">{item.label}</span>
+              {badge ? <PreviewBadge label={badge} /> : null}
             </Link>
           );
         })}

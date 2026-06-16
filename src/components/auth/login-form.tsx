@@ -13,6 +13,7 @@ import { login } from "@/lib/api/auth";
 import { getDefaultChurchSlug } from "@/lib/api/config";
 import { getApiErrorMessage } from "@/lib/api/errors";
 import { enableDemoMode } from "@/lib/api/token-storage";
+import { isDemoModeAllowed, isPasswordResetEnabled } from "@/lib/config/product";
 import { routes } from "@/lib/constants/navigation";
 import { loginFormSchema, type LoginFormValues } from "@/lib/validations/login";
 import { useAuth } from "@/providers/auth-provider";
@@ -57,11 +58,15 @@ export function LoginForm({ className }: LoginFormProps) {
   });
 
   const continueToDemo = () => {
+    if (!isDemoModeAllowed()) return;
     enableDemoMode();
     void refresh().then(() => {
       router.push(routes.app.dashboard);
     });
   };
+
+  const showDemoAccess = isDemoModeAllowed();
+  const showPasswordReset = isPasswordResetEnabled();
 
   return (
     <form className={className} onSubmit={onSubmit} noValidate>
@@ -119,12 +124,14 @@ export function LoginForm({ className }: LoginFormProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor="password">Password</Label>
-          <Link
-            href={routes.auth.forgotPassword}
-            className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Forgot password?
-          </Link>
+          {showPasswordReset ? (
+            <Link
+              href={routes.auth.forgotPassword}
+              className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Forgot password?
+            </Link>
+          ) : null}
         </div>
         <Input
           id="password"
@@ -159,19 +166,23 @@ export function LoginForm({ className }: LoginFormProps) {
         )}
       </Button>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="lg"
-        className="h-11 w-full rounded-xl"
-        onClick={continueToDemo}
-      >
-        Continue to Demo Dashboard
-      </Button>
+      {showDemoAccess ? (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="h-11 w-full rounded-xl"
+            onClick={continueToDemo}
+          >
+            Continue to Demo Dashboard
+          </Button>
 
-      <p className="text-center text-xs text-muted-foreground">
-        Demo access only — uses preview data without calling protected endpoints.
-      </p>
+          <p className="text-center text-xs text-muted-foreground">
+            Demo access only — uses preview data without calling protected endpoints.
+          </p>
+        </>
+      ) : null}
     </form>
   );
 }

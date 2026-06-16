@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mockUser } from "@/lib/mock-user";
+import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { cn } from "@/lib/utils";
 
 type FeedComment = {
@@ -156,6 +156,7 @@ export function CommunityFeed({
   viewAllHref = "/engagement",
   showFilters = false,
 }: CommunityFeedProps) {
+  const { displayName, role } = useDisplayIdentity();
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
   const [likedPostIds, setLikedPostIds] = useState<Record<string, boolean>>({});
   const [openCommentsPostIds, setOpenCommentsPostIds] = useState<Record<string, boolean>>({});
@@ -169,7 +170,7 @@ export function CommunityFeed({
     "All" | "Update" | "Testimony" | "Prayer Request" | "Announcement"
   >("All");
 
-  const availablePostTypes = leadershipRoles.has(mockUser.role)
+  const availablePostTypes = leadershipRoles.has(role)
     ? leadershipPostTypes
     : memberPostTypes;
 
@@ -182,13 +183,13 @@ export function CommunityFeed({
 
   const visiblePosts = useMemo(() => filteredPosts.slice(0, maxPosts), [filteredPosts, maxPosts]);
   const userInitials = useMemo(() => {
-    return mockUser.name
+    return displayName
       .split(" ")
       .map((part) => part[0])
       .join("")
       .slice(0, 2)
       .toUpperCase();
-  }, []);
+  }, [displayName]);
   const isPostDisabled = newPostText.trim().length === 0;
 
   const handleCreatePost = () => {
@@ -199,7 +200,7 @@ export function CommunityFeed({
 
     const createdPost: FeedPost = {
       id: `post-${Date.now()}`,
-      author: mockUser.name,
+      author: displayName,
       type: newPostType,
       message: newPostText.trim(),
       time: "Just now",

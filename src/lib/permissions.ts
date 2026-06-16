@@ -1,8 +1,12 @@
 import { getSessionUser } from "@/lib/auth/session-store";
 import { mockUser, type Permission } from "@/lib/mock-user";
+import { isDemoModeEnabled } from "@/lib/api/token-storage";
 
 function getActivePermissions(): Permission[] {
-  return getSessionUser()?.permissions ?? mockUser.permissions;
+  const sessionUser = getSessionUser();
+  if (sessionUser) return sessionUser.permissions;
+  if (isDemoModeEnabled()) return mockUser.permissions;
+  return [];
 }
 
 export function hasPermission(permission: Permission) {
