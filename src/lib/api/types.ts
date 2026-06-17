@@ -71,6 +71,25 @@ export type PrayerRequestCreate = {
   content: string;
 };
 
+export type ApiCounsellingRequest = {
+  id?: string;
+  category?: string;
+  type?: string;
+  title?: string;
+  description?: string;
+  note?: string;
+  status?: string;
+  submittedAt?: string;
+  createdAt?: string;
+  date?: string;
+};
+
+export type CounsellingRequestCreate = {
+  category: string;
+  title: string;
+  description: string;
+};
+
 export type FinanceSummary = Record<string, unknown>;
 
 export type ApiListResponse<T> = {
