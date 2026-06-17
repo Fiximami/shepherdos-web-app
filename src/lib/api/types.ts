@@ -54,6 +54,23 @@ export type AttendanceCheckInResult = {
   checkedInToday: boolean;
 };
 
+export type ApiPrayerRequest = {
+  id?: string;
+  title?: string;
+  content?: string;
+  message?: string;
+  body?: string;
+  status?: string;
+  submittedAt?: string;
+  createdAt?: string;
+  date?: string;
+};
+
+export type PrayerRequestCreate = {
+  title: string;
+  content: string;
+};
+
 export type FinanceSummary = Record<string, unknown>;
 
 export type ApiListResponse<T> = {
