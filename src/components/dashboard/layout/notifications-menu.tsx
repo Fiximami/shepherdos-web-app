@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { routes } from "@/lib/constants/navigation";
+import { isLeadershipRole } from "@/lib/auth/leadership-access";
 import { cn } from "@/lib/utils";
 
 type NotificationItem = {
@@ -36,24 +37,12 @@ const mockNotifications: NotificationItem[] = [
   },
 ];
 
-const leadershipRoles = new Set([
-  "admin",
-  "church_admin",
-  "owner",
-  "church_owner",
-  "pastor",
-  "finance",
-  "finance_officer",
-  "leader",
-  "ministry_leader",
-]);
-
 export function NotificationsMenu({ role }: { role: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [readState, setReadState] = useState<Record<string, boolean>>({});
 
   const visibleItems = useMemo(() => {
-    const leadership = leadershipRoles.has(role);
+    const leadership = isLeadershipRole(role);
     return mockNotifications.filter((item) => (item.leadershipOnly ? leadership : true));
   }, [role]);
 

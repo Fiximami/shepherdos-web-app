@@ -29,7 +29,7 @@ import { PreviewBadge } from "@/components/shared/preview-badge";
 import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { getRouteBadge, isPathAvailable } from "@/lib/config/alpha-routes";
 import { getProductName } from "@/lib/config/product";
-import { hasAnyPermission } from "@/lib/permissions";
+import { canAccessLeadershipConsoleFromSession, hasAnyPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const adminNav = [
@@ -61,6 +61,9 @@ export function AdminSidebar() {
   const visibleNav = useMemo(
     () =>
       adminNav.filter((item) => {
+        if (!canAccessLeadershipConsoleFromSession()) {
+          return false;
+        }
         if (!isPathAvailable(item.href, "admin")) {
           return false;
         }

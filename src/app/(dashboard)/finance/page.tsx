@@ -1,5 +1,7 @@
-import { FinancePageView } from "@/components/dashboard/finance/finance-page-view";
+import { redirect } from "next/navigation";
+
+import { routes } from "@/lib/constants/navigation";
 
 export default function FinancePage() {
-  return <FinancePageView />;
+  redirect(routes.app.giving);
 }

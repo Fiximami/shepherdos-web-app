@@ -42,6 +42,7 @@ export function SettingsPageView() {
           title="Account preferences"
           description="Set your personal account defaults for a smoother day-to-day church experience."
           className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]"
+          preview
         >
           <SettingsPlaceholderRow label="Display name" value={user.name} />
           <SettingsPlaceholderRow label="Email" value={fields.email} />
@@ -67,6 +68,7 @@ export function SettingsPageView() {
           title="Notification preferences"
           description="Choose what updates you want to receive and how often."
           className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]"
+          preview
         >
           <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="inline-flex items-center gap-2 text-sm font-medium text-white">
@@ -107,6 +109,7 @@ export function SettingsPageView() {
           title="Privacy settings"
           description="Control who can view your member profile and who can send you direct messages."
           className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]"
+          preview
         >
           <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
             <p className="text-sm font-medium text-white">Profile visibility</p>

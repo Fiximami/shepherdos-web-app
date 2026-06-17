@@ -9,7 +9,6 @@ const memberAlphaPaths = new Set<string>([
   routes.app.dashboard,
   routes.app.profile,
   routes.app.attendance,
-  routes.app.finance,
   routes.app.giving,
   routes.app.settings,
 ]);
@@ -38,6 +37,7 @@ const adminBetaPaths = new Set<string>([
 ]);
 
 const hiddenMemberPaths = new Set<string>([
+  routes.app.finance,
   routes.app.feed,
   routes.app.events,
   routes.app.prayerRequests,
@@ -111,7 +111,11 @@ export function getRouteBadge(pathname: string, scope: AlphaRouteScope): RouteBa
   return null;
 }
 
-export function getUnavailableRedirect(scope: AlphaRouteScope): string {
+export function getUnavailableRedirect(scope: AlphaRouteScope, pathname?: string): string {
+  if (scope === "member" && pathname === routes.app.finance) {
+    return routes.app.giving;
+  }
+
   if (scope === "auth") {
     return routes.auth.login;
   }

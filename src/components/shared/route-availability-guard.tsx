@@ -22,9 +22,9 @@ export function RouteAvailabilityGuard({ children, scope }: RouteAvailabilityGua
 
   useEffect(() => {
     if (!isAvailable) {
-      router.replace(getUnavailableRedirect(scope));
+      router.replace(getUnavailableRedirect(scope, pathname));
     }
-  }, [isAvailable, router, scope]);
+  }, [isAvailable, pathname, router, scope]);
 
   if (!isAvailable) {
     return (

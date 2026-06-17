@@ -12,6 +12,7 @@ import {
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SettingsPlaceholderRow } from "@/components/dashboard/settings/settings-section-shell";
+import { PreviewBadge } from "@/components/shared/preview-badge";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
 import {
@@ -148,6 +149,7 @@ export function ProfilePageView() {
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <HandHeart className="size-4 text-blue-200/90" aria-hidden />
               Ministry involvement
+              <PreviewBadge label="Preview" />
             </CardTitle>
             <CardDescription>
               Areas where you currently serve and support church life with consistency.
@@ -171,6 +173,7 @@ export function ProfilePageView() {
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <BadgeCheck className="size-4 text-amber-200/90" aria-hidden />
               Skills and interests
+              <PreviewBadge label="Preview" />
             </CardTitle>
             <CardDescription>
               Gifts and interests that can help leaders connect you to meaningful service opportunities.

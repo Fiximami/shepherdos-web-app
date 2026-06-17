@@ -1,4 +1,5 @@
 export const availablePermissions = [
+  "leadership.access",
   "members:create",
   "members:update",
   "announcements:create",

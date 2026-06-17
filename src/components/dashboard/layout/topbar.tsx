@@ -12,20 +12,19 @@ import { UserMenu } from "@/components/dashboard/layout/user-menu";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useDisplayIdentity } from "@/hooks/use-display-identity";
+import { canAccessLeadershipConsole as userCanAccessLeadershipConsole } from "@/lib/auth/leadership-access";
 import { getProductName, showPreviewRoutes } from "@/lib/config/product";
 import { cn } from "@/lib/utils";
 
 type TopbarProps = {
   title: string;
   onOpenSidebar: () => void;
-  showLeadershipConsole?: boolean;
   className?: string;
 };
 
 export function Topbar({
   title,
   onOpenSidebar,
-  showLeadershipConsole = false,
   className,
 }: TopbarProps) {
   const [logoMissing, setLogoMissing] = useState(false);
@@ -37,12 +36,8 @@ export function Topbar({
   const productName = getProductName();
   const showSearch = showPreviewRoutes();
   const canAccessLeadershipConsole = useMemo(
-    () =>
-      showLeadershipConsole &&
-      (role !== "member" ||
-        permissions.includes("users:manage") ||
-        permissions.includes("settings:manage")),
-    [permissions, role, showLeadershipConsole],
+    () => userCanAccessLeadershipConsole({ role, permissions }),
+    [permissions, role],
   );
 
   return (

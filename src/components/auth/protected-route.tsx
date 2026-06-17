@@ -6,7 +6,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { useAuth } from "@/providers/auth-provider";
 import { routes } from "@/lib/constants/navigation";
-import { hasAnyPermission } from "@/lib/permissions";
+import { canAccessLeadershipConsoleFromSession, hasAnyPermission } from "@/lib/permissions";
 import type { Permission } from "@/lib/mock-user";
 
 type ProtectedRouteProps = {
@@ -14,23 +14,6 @@ type ProtectedRouteProps = {
   requireLeadership?: boolean;
   requiredAny?: Permission[];
 };
-
-const leadershipPermissions: Permission[] = [
-  "users:manage",
-  "settings:manage",
-  "finance:approve",
-  "finance:record",
-  "finance:report",
-  "counselling:view",
-  "counselling:manage",
-  "members:create",
-  "members:update",
-  "followups:assign",
-  "announcements:create",
-  "messages:send",
-  "attendance:record",
-  "events:create",
-];
 
 export function ProtectedRoute({
   children,
@@ -48,7 +31,7 @@ export function ProtectedRoute({
 
     if (status !== "authenticated") return;
 
-    if (requireLeadership && !hasAnyPermission(leadershipPermissions)) {
+    if (requireLeadership && !canAccessLeadershipConsoleFromSession()) {
       router.replace(routes.app.dashboard);
       return;
     }
@@ -73,7 +56,7 @@ export function ProtectedRoute({
     return null;
   }
 
-  if (requireLeadership && !hasAnyPermission(leadershipPermissions)) {
+  if (requireLeadership && !canAccessLeadershipConsoleFromSession()) {
     return null;
   }
 

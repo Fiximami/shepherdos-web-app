@@ -70,14 +70,14 @@ const actionCatalog: Record<string, QuickAction> = {
     label: "Record Transaction",
     icon: HandCoins,
     permission: "finance:record",
-    href: routes.app.finance,
+    href: "/admin/finance",
   },
   reviewGiving: {
     id: "review-giving",
     label: "Review Giving",
     icon: ReceiptText,
     permission: "payments:create",
-    href: routes.app.finance,
+    href: "/admin/giving",
   },
   approveExpense: {
     id: "approve-expense",

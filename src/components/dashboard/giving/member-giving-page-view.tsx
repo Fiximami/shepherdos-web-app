@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
+import { PreviewBadge } from "@/components/shared/preview-badge";
 import { PreviewSectionNotice } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -507,7 +508,10 @@ export function MemberGivingPageView() {
         <div className="space-y-5">
           <Card className="border-white/10 bg-white/[0.04] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">
             <CardHeader>
-              <CardTitle className="text-base text-white sm:text-lg">Pledge tracking</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base text-white sm:text-lg">
+                Pledge tracking
+                <PreviewBadge label="Preview" />
+              </CardTitle>
               <CardDescription>Honouring commitments at a pace that fits your season.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

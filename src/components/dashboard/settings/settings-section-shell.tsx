@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PreviewBadge } from "@/components/shared/preview-badge";
 import { cn } from "@/lib/utils";
 
 type SettingsSectionShellProps = {
@@ -14,6 +15,7 @@ type SettingsSectionShellProps = {
   description: string;
   children: ReactNode;
   className?: string;
+  preview?: boolean;
 };
 
 export function SettingsSectionShell({
@@ -21,6 +23,7 @@ export function SettingsSectionShell({
   description,
   children,
   className,
+  preview = false,
 }: SettingsSectionShellProps) {
   return (
     <Card
@@ -30,7 +33,10 @@ export function SettingsSectionShell({
       )}
     >
       <CardHeader>
-        <CardTitle className="text-base sm:text-lg">{title}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          {title}
+          {preview ? <PreviewBadge label="Preview" /> : null}
+        </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">{children}</CardContent>

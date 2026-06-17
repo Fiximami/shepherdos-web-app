@@ -7,7 +7,6 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { routes } from "@/lib/constants/navigation";
-import { useCurrentUser } from "@/hooks/use-current-user";
 
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -23,7 +22,6 @@ const pageTitles: Record<string, string> = {
   [routes.app.messages]: "Messages",
   [routes.app.members]: "Members",
   [routes.app.attendance]: "Attendance",
-  [routes.app.finance]: "Finance",
   [routes.app.communication]: "Communication",
   [routes.app.events]: "Events",
   [routes.app.analytics]: "Analytics",
@@ -31,18 +29,6 @@ const pageTitles: Record<string, string> = {
   [routes.app.settings]: "Settings",
   [routes.app.profile]: "Profile",
 };
-
-const leadershipRoles = new Set([
-  "admin",
-  "church_admin",
-  "owner",
-  "church_owner",
-  "pastor",
-  "finance",
-  "finance_officer",
-  "leader",
-  "ministry_leader",
-]);
 
 type DashboardShellProps = {
   children: ReactNode;
@@ -55,9 +41,6 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const title = useMemo(() => {
     return pageTitles[pathname] ?? "Workspace";
   }, [pathname]);
-
-  const currentUser = useCurrentUser();
-  const showLeadershipConsole = leadershipRoles.has(currentUser.role);
 
   return (
     <div
@@ -73,7 +56,6 @@ export function DashboardShell({ children }: DashboardShellProps) {
           <Topbar
             title={title}
             onOpenSidebar={() => setIsMobileSidebarOpen(true)}
-            showLeadershipConsole={showLeadershipConsole}
           />
           <main className="shepherd-fade-in mt-4 min-w-0 flex-1 rounded-2xl p-4 sm:p-5 lg:p-6">
             {children}

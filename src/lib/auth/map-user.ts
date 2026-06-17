@@ -5,6 +5,7 @@ import {
   resolveDisplayName,
   resolveRoleLabel,
 } from "@/lib/auth/display-identity";
+import { normalizeRole } from "@/lib/auth/leadership-access";
 import { availablePermissions, mockUser, type Permission } from "@/lib/mock-user";
 
 function isPermission(value: string): value is Permission {
@@ -20,7 +21,7 @@ function normalizePermissions(permissions: string[] | undefined): Permission[] {
 }
 
 export function mapApiUserToSession(user: ApiUser): SessionUser {
-  const role = user.role?.trim() || "member";
+  const role = normalizeRole(user.role);
   const churchName = resolveChurchName({ church: user.church, churchName: user.churchName });
   const churchLogo = resolveChurchLogo({ church: user.church, churchLogo: user.churchLogo });
 
