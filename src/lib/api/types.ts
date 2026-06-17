@@ -19,6 +19,7 @@ export type ApiUser = {
   name?: string;
   fullName?: string;
   role?: string;
+  roles?: string[];
   roleLabel?: string;
   permissions?: string[];
   church?: {
@@ -37,10 +38,11 @@ export type SessionUser = {
   name: string;
   email: string;
   role: string;
+  roles: string[];
   roleLabel: string;
   churchName: string;
   churchLogo: string;
-  permissions: Permission[];
+  permissions: string[];
 };
 
 export type MembersSummary = Record<string, unknown>;

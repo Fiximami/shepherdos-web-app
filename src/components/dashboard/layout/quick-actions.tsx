@@ -158,7 +158,7 @@ const actionOrder = [
 export function QuickActions({
   permissions,
 }: {
-  permissions: readonly Permission[];
+  permissions: readonly string[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");

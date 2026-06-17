@@ -4,7 +4,13 @@ import { LogOut, Settings, UserCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { resolveRoleLabel } from "@/lib/auth/display-identity";
+import {
+  canAccessLeadershipConsole,
+  getUserRoles,
+} from "@/lib/auth/leadership-access";
+import { isAlphaDeployment } from "@/lib/config/product";
 import { routes } from "@/lib/constants/navigation";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -17,12 +23,20 @@ type UserMenuProps = {
 
 export function UserMenu({ name, role, roleLabel, workspace }: UserMenuProps) {
   const { signOut } = useAuth();
+  const currentUser = useCurrentUser();
   const [isOpen, setIsOpen] = useState(false);
 
   const resolvedRoleLabel = useMemo(
     () => resolveRoleLabel(role, roleLabel),
     [role, roleLabel],
   );
+
+  const roles = useMemo(() => getUserRoles(currentUser), [currentUser]);
+  const leadershipAccess = useMemo(
+    () => canAccessLeadershipConsole(currentUser),
+    [currentUser],
+  );
+  const showAlphaDebug = isAlphaDeployment();
 
   return (
     <div className="relative hidden sm:block">
@@ -82,6 +96,15 @@ export function UserMenu({ name, role, roleLabel, workspace }: UserMenuProps) {
               Logout
             </button>
           </div>
+
+          {showAlphaDebug ? (
+            <div className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 font-mono text-[10px] leading-relaxed text-amber-100/90">
+              <p>role: {currentUser.role}</p>
+              <p>roles: [{roles.join(", ")}]</p>
+              <p>permissions: {currentUser.permissions.length}</p>
+              <p>canAccessLeadershipConsole: {String(leadershipAccess)}</p>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

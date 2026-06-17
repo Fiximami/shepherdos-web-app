@@ -42,6 +42,7 @@ export const mockUser: MockUser = {
   churchName: "Grace Community Church",
   churchLogo: "/images/branding/shepherdos-logo.png",
   permissions: [
+    "leadership.access",
     "members:create",
     "members:update",
     "announcements:create",

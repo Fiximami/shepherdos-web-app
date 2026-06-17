@@ -5,23 +5,42 @@ import {
   resolveDisplayName,
   resolveRoleLabel,
 } from "@/lib/auth/display-identity";
-import { normalizeRole } from "@/lib/auth/leadership-access";
-import { availablePermissions, mockUser, type Permission } from "@/lib/mock-user";
+import {
+  LEADERSHIP_ACCESS_PERMISSION,
+  getUserRoles,
+  normalizeRole,
+  resolvePrimaryRole,
+} from "@/lib/auth/leadership-access";
+import { mockUser } from "@/lib/mock-user";
 
-function isPermission(value: string): value is Permission {
-  return (availablePermissions as readonly string[]).includes(value);
+function extractApiRoles(user: ApiUser): string[] {
+  const rawRoles = [...(user.roles ?? [])];
+  if (user.role?.trim()) {
+    rawRoles.push(user.role);
+  }
+  return [...new Set(rawRoles.map(normalizeRole))];
 }
 
-function normalizePermissions(permissions: string[] | undefined): Permission[] {
+function normalizePermissions(permissions: string[] | undefined): string[] {
   if (!permissions?.length) {
     return [];
   }
 
-  return permissions.filter(isPermission);
+  return [...new Set(
+    permissions
+      .map((permission) => permission.trim())
+      .filter(Boolean)
+      .map((permission) =>
+        permission.toLowerCase() === LEADERSHIP_ACCESS_PERMISSION
+          ? LEADERSHIP_ACCESS_PERMISSION
+          : permission,
+      ),
+  )];
 }
 
 export function mapApiUserToSession(user: ApiUser): SessionUser {
-  const role = normalizeRole(user.role);
+  const roles = extractApiRoles(user);
+  const role = resolvePrimaryRole(roles.length > 0 ? roles : ["member"]);
   const churchName = resolveChurchName({ church: user.church, churchName: user.churchName });
   const churchLogo = resolveChurchLogo({ church: user.church, churchLogo: user.churchLogo });
 
@@ -34,6 +53,7 @@ export function mapApiUserToSession(user: ApiUser): SessionUser {
       email: user.email,
     }),
     role,
+    roles: getUserRoles({ role, roles, permissions: [] }),
     roleLabel: resolveRoleLabel(role, user.roleLabel),
     churchName,
     churchLogo,
@@ -47,6 +67,7 @@ export function getEmptySessionUser(): SessionUser {
     name: "Member",
     email: "",
     role: "member",
+    roles: ["member"],
     roleLabel: "Member",
     churchName: "",
     churchLogo: "",
@@ -55,11 +76,13 @@ export function getEmptySessionUser(): SessionUser {
 }
 
 export function getDemoSessionUser(): SessionUser {
+  const role = normalizeRole(mockUser.role);
   return {
     id: mockUser.id,
     name: mockUser.name,
     email: "",
-    role: mockUser.role,
+    role,
+    roles: [role],
     roleLabel: mockUser.roleLabel,
     churchName: mockUser.churchName,
     churchLogo: mockUser.churchLogo,

@@ -26,10 +26,13 @@ import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 
 import { PreviewBadge } from "@/components/shared/preview-badge";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { useDisplayIdentity } from "@/hooks/use-display-identity";
+import { canAccessAdminPath } from "@/lib/auth/admin-module-access";
+import { canAccessLeadershipConsole, isSuperAdmin } from "@/lib/auth/leadership-access";
 import { getRouteBadge, isPathAvailable } from "@/lib/config/alpha-routes";
 import { getProductName } from "@/lib/config/product";
-import { canAccessLeadershipConsoleFromSession, hasAnyPermission } from "@/lib/permissions";
+import { hasAnyPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const adminNav = [
@@ -57,22 +60,29 @@ const adminNav = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const { churchName, churchLogo } = useDisplayIdentity();
+  const currentUser = useCurrentUser();
   const productName = getProductName();
   const visibleNav = useMemo(
     () =>
       adminNav.filter((item) => {
-        if (!canAccessLeadershipConsoleFromSession()) {
+        if (!canAccessLeadershipConsole(currentUser)) {
+          return false;
+        }
+        if (!canAccessAdminPath(currentUser, item.href)) {
           return false;
         }
         if (!isPathAvailable(item.href, "admin")) {
           return false;
+        }
+        if (isSuperAdmin(currentUser)) {
+          return true;
         }
         if (!("requiredAny" in item) || !item.requiredAny) {
           return true;
         }
         return hasAnyPermission(item.requiredAny);
       }),
-    [],
+    [currentUser],
   );
 
   return (

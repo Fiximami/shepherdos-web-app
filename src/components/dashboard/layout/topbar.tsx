@@ -36,8 +36,8 @@ export function Topbar({
   const productName = getProductName();
   const showSearch = showPreviewRoutes();
   const canAccessLeadershipConsole = useMemo(
-    () => userCanAccessLeadershipConsole({ role, permissions }),
-    [permissions, role],
+    () => userCanAccessLeadershipConsole(currentUser),
+    [currentUser],
   );
 
   return (

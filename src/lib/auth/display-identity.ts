@@ -1,7 +1,9 @@
 import type { ApiUser } from "@/lib/api/types";
+import { normalizeRole } from "@/lib/auth/leadership-access";
 
 export const roleLabels: Record<string, string> = {
   member: "Member",
+  super_admin: "Super Admin",
   pastor: "Pastor",
   finance: "Finance Officer",
   finance_officer: "Finance Officer",
@@ -11,6 +13,7 @@ export const roleLabels: Record<string, string> = {
   church_owner: "Church Owner",
   leader: "Leader",
   ministry_leader: "Ministry Leader",
+  elder: "Elder",
 };
 
 export function resolveDisplayName(options: {
@@ -43,8 +46,8 @@ export function resolveRoleLabel(role?: string | null, roleLabel?: string | null
   const label = roleLabel?.trim();
   if (label) return label;
 
-  const normalizedRole = role?.trim();
-  if (normalizedRole && roleLabels[normalizedRole]) {
+  const normalizedRole = normalizeRole(role);
+  if (roleLabels[normalizedRole]) {
     return roleLabels[normalizedRole];
   }
 
