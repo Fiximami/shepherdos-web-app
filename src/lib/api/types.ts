@@ -113,6 +113,68 @@ export type EventRegistrationResult = {
   registrationStatus: string;
 };
 
+export type ApiGivingStatement = {
+  id?: string;
+  period?: string;
+  statementPeriod?: string;
+  label?: string;
+  totalAmount?: number | string;
+  amount?: number | string;
+  total?: number | string;
+  generatedAt?: string;
+  generatedDate?: string;
+  createdAt?: string;
+  date?: string;
+};
+
+export type ApiGivingReceipt = {
+  id?: string;
+  receiptId?: string;
+  receipt_id?: string;
+  givingId?: string;
+  reference?: string;
+  financeReference?: string;
+  finance_reference?: string;
+  date?: string;
+  createdAt?: string;
+  amount?: number | string;
+  category?: string;
+  type?: string;
+  paymentMethod?: string;
+  method?: string;
+  memberName?: string;
+  member?: string;
+  churchName?: string;
+  church?: string;
+  status?: string;
+};
+
+export type ApiPledge = {
+  id?: string;
+  title?: string;
+  name?: string;
+  amount?: number | string;
+  targetAmount?: number | string;
+  target?: number | string;
+  paidAmount?: number | string;
+  paid?: number | string;
+  progress?: number | string;
+  targetDate?: string;
+  dueDate?: string;
+  endDate?: string;
+  status?: string;
+};
+
+export type PledgeCreate = {
+  title: string;
+  amount: number;
+  targetDate: string;
+};
+
+export type PledgeUpdate = {
+  paidAmount: number;
+};
+
 export type FinanceSummary = Record<string, unknown>;
 
 export type ApiListResponse<T> = {

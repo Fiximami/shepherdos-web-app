@@ -1,10 +1,11 @@
 "use client";
 
-import { Download, FileText, HandCoins, HeartHandshake } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Download, FileText, HandCoins, HeartHandshake, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { FormToast } from "@/components/shared/form-toast";
 import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
 import { PreviewBadge } from "@/components/shared/preview-badge";
 import { PreviewSectionNotice } from "@/components/shared/preview-section-notice";
@@ -12,9 +13,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApiData } from "@/hooks/use-api-data";
 import { useMemberProfileFields } from "@/hooks/use-member-profile-fields";
-import { fetchMyGiving } from "@/lib/api/giving";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import {
+  fetchGivingReceipt,
+  fetchMyGiving,
+  fetchMyGivingStatements,
+  formatGivingStatementDate,
+  mapMemberGivingStatement,
+  type MemberGivingReceipt,
+} from "@/lib/api/giving";
 import { mapMemberGivingHistoryItem } from "@/lib/api/mappers";
 import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
+import {
+  createPledge,
+  fetchMyPledges,
+  formatPledgeDate,
+  mapMemberPledge,
+  updatePledge,
+  type MemberPledgeRow,
+} from "@/lib/api/pledges";
+import { pledgeCreateSchema, pledgeProgressSchema } from "@/lib/validations/pledge";
 import { useAuth } from "@/providers/auth-provider";
 import { buildReceiptId, receiptRecords, type ReceiptCategory, type ReceiptPaymentMethod } from "@/lib/mock-receipts";
 import { cn } from "@/lib/utils";
@@ -74,10 +92,115 @@ type PledgeRow = {
   paid: number;
 };
 
-const pledgeRows: PledgeRow[] = [
+const demoPledgeRows: PledgeRow[] = [
   { id: "p-1", name: "Sanctuary refurbishment", target: 5000, paid: 3200 },
   { id: "p-2", name: "Missions pledge · East Africa", target: 1200, paid: 400 },
 ];
+
+function PledgeProgressCard({
+  pledge,
+  showControls,
+  isUpdating,
+  onUpdate,
+}: {
+  pledge: PledgeRow | MemberPledgeRow;
+  showControls: boolean;
+  isUpdating?: boolean;
+  onUpdate?: (pledgeId: string, paidAmount: number) => void;
+}) {
+  const title = "name" in pledge ? pledge.name : pledge.title;
+  const target = "target" in pledge ? pledge.target : pledge.targetAmount;
+  const paid = "paid" in pledge ? pledge.paid : pledge.paidAmount;
+  const [paidInput, setPaidInput] = useState(String(paid));
+  const [progressError, setProgressError] = useState("");
+
+  useEffect(() => {
+    setPaidInput(String(paid));
+  }, [paid]);
+
+  const balance = Math.max(0, target - paid);
+  const pct = target > 0 ? Math.min(100, Math.round((paid / target) * 100)) : 0;
+
+  const handleSaveProgress = () => {
+    if (!onUpdate || !("id" in pledge)) return;
+    const parsed = pledgeProgressSchema.safeParse({ paidAmount: paidInput });
+    if (!parsed.success) {
+      setProgressError(parsed.error.issues[0]?.message ?? "Enter a valid paid amount.");
+      return;
+    }
+    setProgressError("");
+    onUpdate(pledge.id, parsed.data.paidAmount);
+  };
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#0c1824]/60 px-4 py-3">
+      <p className="text-sm font-medium text-white">{title}</p>
+      {"targetDate" in pledge && pledge.targetDate !== "—" ? (
+        <p className="mt-1 text-xs text-slate-500">Target date: {formatPledgeDate(pledge.targetDate)}</p>
+      ) : null}
+      <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500 sm:grid-cols-4">
+        <div>
+          <p className="text-[10px] uppercase tracking-wide">Target</p>
+          <p className="mt-0.5 tabular-nums text-slate-300">{formatCurrency(target)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wide">Paid</p>
+          <p className="mt-0.5 tabular-nums text-emerald-200/90">{formatCurrency(paid)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wide">Balance</p>
+          <p className="mt-0.5 tabular-nums text-amber-100/90">{formatCurrency(balance)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wide">Progress</p>
+          <p className="mt-0.5 tabular-nums text-white">{pct}%</p>
+        </div>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-amber-700/80 to-amber-400/70 transition-[width] duration-300"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {showControls && onUpdate ? (
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className="text-[10px] uppercase tracking-wide text-slate-500" htmlFor={`paid-${pledge.id}`}>
+              Update paid amount
+            </label>
+            <input
+              id={`paid-${pledge.id}`}
+              value={paidInput}
+              onChange={(event) => {
+                setPaidInput(event.target.value);
+                if (progressError) setProgressError("");
+              }}
+              inputMode="decimal"
+              className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-amber-400/25"
+            />
+            {progressError ? <p className="mt-1 text-xs text-destructive">{progressError}</p> : null}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            className="h-9 rounded-lg"
+            disabled={isUpdating}
+            onClick={handleSaveProgress}
+          >
+            {isUpdating ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Saving…
+              </>
+            ) : (
+              "Save progress"
+            )}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function formatCurrency(amount: number) {
   return `GHS ${amount.toLocaleString("en-GH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
@@ -110,11 +233,48 @@ export function MemberGivingPageView() {
     fetchMyGiving,
     EMPTY_MEMBER_SCOPE,
   );
+  const statementsQuery = useApiData(
+    "member-giving-statements",
+    fetchMyGivingStatements,
+    EMPTY_MEMBER_SCOPE,
+  );
+  const pledgesQuery = useApiData("member-pledges-me", fetchMyPledges, EMPTY_MEMBER_SCOPE);
   const [selectedReceiptIds, setSelectedReceiptIds] = useState<Set<string>>(new Set());
   const [previewReceiptId, setPreviewReceiptId] = useState<string | null>(null);
+  const [liveReceipt, setLiveReceipt] = useState<MemberGivingReceipt | null>(null);
+  const [liveReceiptGivingId, setLiveReceiptGivingId] = useState<string | null>(null);
+  const [liveReceiptLoading, setLiveReceiptLoading] = useState(false);
+  const [liveReceiptError, setLiveReceiptError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [actionToast, setActionToast] = useState<{
+    message: string;
+    variant: "success" | "error";
+  } | null>(null);
+  const [pledgeTitle, setPledgeTitle] = useState("");
+  const [pledgeAmount, setPledgeAmount] = useState("");
+  const [pledgeTargetDate, setPledgeTargetDate] = useState("");
+  const [pledgeFormError, setPledgeFormError] = useState("");
+  const [isCreatingPledge, setIsCreatingPledge] = useState(false);
+  const [updatingPledgeId, setUpdatingPledgeId] = useState<string | null>(null);
 
   const isLinked = givingQuery.isLive && givingQuery.data.linked;
+  const showGivingControls = isDemo || isLinked;
+
+  const livePledges = useMemo(() => {
+    if (!isLinked) return [];
+    return pledgesQuery.data.items.map((item, index) =>
+      mapMemberPledge(item as Record<string, unknown>, index),
+    );
+  }, [isLinked, pledgesQuery.data.items]);
+
+  const pledgeRowsForDisplay = isDemo ? demoPledgeRows : livePledges;
+
+  const liveStatements = useMemo(() => {
+    if (!isLinked) return [];
+    return statementsQuery.data.items.map((item, index) =>
+      mapMemberGivingStatement(item as Record<string, unknown>, index),
+    );
+  }, [isLinked, statementsQuery.data.items]);
 
   const history = useMemo(() => {
     const apiHistory =
@@ -153,6 +313,74 @@ export function MemberGivingPageView() {
       else next.add(id);
       return next;
     });
+  };
+
+  const handleCreatePledge = async () => {
+    const parsed = pledgeCreateSchema.safeParse({
+      title: pledgeTitle,
+      amount: pledgeAmount,
+      targetDate: pledgeTargetDate,
+    });
+    if (!parsed.success) {
+      setPledgeFormError(parsed.error.issues[0]?.message ?? "Check your pledge details.");
+      return;
+    }
+
+    setPledgeFormError("");
+    setIsCreatingPledge(true);
+    setActionToast(null);
+
+    try {
+      await createPledge(parsed.data);
+      setPledgeTitle("");
+      setPledgeAmount("");
+      setPledgeTargetDate("");
+      setActionToast({ message: "Pledge created successfully.", variant: "success" });
+      pledgesQuery.refetch();
+    } catch (cause) {
+      setActionToast({ message: getApiErrorMessage(cause), variant: "error" });
+    } finally {
+      setIsCreatingPledge(false);
+    }
+  };
+
+  const handleUpdatePledgeProgress = async (pledgeId: string, paidAmount: number) => {
+    setUpdatingPledgeId(pledgeId);
+    setActionToast(null);
+
+    try {
+      await updatePledge(pledgeId, { paidAmount });
+      setActionToast({ message: "Pledge progress updated.", variant: "success" });
+      pledgesQuery.refetch();
+    } catch (cause) {
+      setActionToast({ message: getApiErrorMessage(cause), variant: "error" });
+    } finally {
+      setUpdatingPledgeId(null);
+    }
+  };
+
+  const openLiveReceipt = async (givingId: string) => {
+    setLiveReceiptGivingId(givingId);
+    setLiveReceipt(null);
+    setLiveReceiptError(null);
+    setLiveReceiptLoading(true);
+
+    try {
+      const receipt = await fetchGivingReceipt(givingId);
+      setLiveReceipt(receipt);
+    } catch (cause) {
+      setLiveReceiptError(getApiErrorMessage(cause));
+    } finally {
+      setLiveReceiptLoading(false);
+    }
+  };
+
+  const closeReceiptModal = () => {
+    setPreviewReceiptId(null);
+    setLiveReceiptGivingId(null);
+    setLiveReceipt(null);
+    setLiveReceiptError(null);
+    setLiveReceiptLoading(false);
   };
 
   const handleSubmitGiving = () => {
@@ -234,7 +462,17 @@ export function MemberGivingPageView() {
         />
       ) : null}
 
-      {givingQuery.isLive && !givingQuery.data.linked ? <MemberLinkedNotice /> : null}
+      {givingQuery.isLive && !givingQuery.data.linked ? (
+        <MemberLinkedNotice message="Your account is not linked to a member profile." />
+      ) : null}
+
+      {actionToast ? (
+        <FormToast
+          message={actionToast.message}
+          variant={actionToast.variant}
+          onDismiss={() => setActionToast(null)}
+        />
+      ) : null}
 
       <section className="shepherd-fade-in">
         <Card className="border-white/10 bg-white/[0.04] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">
@@ -268,6 +506,7 @@ export function MemberGivingPageView() {
 
       <section className="shepherd-fade-in grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-5">
+          {showGivingControls ? (
           <Card className="border-white/10 bg-white/[0.04] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">
             <CardHeader>
               <CardTitle className="text-base text-white sm:text-lg">Give now</CardTitle>
@@ -350,6 +589,7 @@ export function MemberGivingPageView() {
               {feedback ? <p className="text-xs text-slate-400">{feedback}</p> : null}
             </CardContent>
           </Card>
+          ) : null}
 
           <Card className="border-white/10 bg-white/[0.04] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]">
             <CardHeader>
@@ -367,7 +607,7 @@ export function MemberGivingPageView() {
               </div>
               <div className="rounded-xl border border-white/10 bg-[#0c1824]/60 px-4 py-3">
                 <p className="text-xs text-slate-500">Active pledges</p>
-                <p className="mt-1 text-lg font-semibold text-white">{pledgeRows.length}</p>
+                <p className="mt-1 text-lg font-semibold text-white">{pledgeRowsForDisplay.length}</p>
               </div>
               <div className="rounded-xl border border-white/10 bg-[#0c1824]/60 px-4 py-3">
                 <p className="text-xs text-slate-500">Last giving date</p>
@@ -441,27 +681,42 @@ export function MemberGivingPageView() {
                         </td>
                         <td className="py-2.5">
                           {canReceipt ? (
-                            <button
-                              type="button"
-                              onClick={() => setFeedback(`Download receipt ${row.receiptId ?? "Pending"} (preview).`)}
-                              className="inline-flex items-center gap-1 text-xs font-medium text-amber-200/90 hover:text-amber-100"
-                            >
-                              <Download className="size-3.5" aria-hidden />
-                              Download receipt
-                            </button>
+                            isDemo ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setFeedback(`Download receipt ${row.receiptId ?? "Pending"} (preview).`)}
+                                  className="inline-flex items-center gap-1 text-xs font-medium text-amber-200/90 hover:text-amber-100"
+                                >
+                                  <Download className="size-3.5" aria-hidden />
+                                  Download receipt
+                                </button>
+                                {row.receiptId ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewReceiptId(row.receiptId)}
+                                    className="ml-3 inline-flex items-center gap-1 text-xs font-medium text-slate-300 hover:text-white"
+                                  >
+                                    <FileText className="size-3.5" aria-hidden />
+                                    Preview
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-slate-600">—</span>
+                                )}
+                              </>
+                            ) : showGivingControls ? (
+                              <button
+                                type="button"
+                                onClick={() => void openLiveReceipt(row.id)}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-amber-200/90 hover:text-amber-100"
+                              >
+                                <FileText className="size-3.5" aria-hidden />
+                                View Receipt
+                              </button>
+                            ) : (
+                              <span className="text-xs text-slate-600">—</span>
+                            )
                           ) : null}
-                          {canReceipt && row.receiptId ? (
-                            <button
-                              type="button"
-                              onClick={() => setPreviewReceiptId(row.receiptId)}
-                              className="ml-3 inline-flex items-center gap-1 text-xs font-medium text-slate-300 hover:text-white"
-                            >
-                              <FileText className="size-3.5" aria-hidden />
-                              Preview
-                            </button>
-                          ) : (
-                            <span className="text-xs text-slate-600">—</span>
-                          )}
                         </td>
                       </tr>
                     );
@@ -477,30 +732,81 @@ export function MemberGivingPageView() {
               <CardTitle className="text-base text-white sm:text-lg">Receipts & statements</CardTitle>
               <CardDescription>Official documents for tax or personal records—served as PDF when enabled.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 border-amber-500/25 bg-[#0c1824]/80 text-amber-50 hover:bg-[#0c1824]"
-                disabled={selectedReceiptIds.size === 0}
-                onClick={() =>
-                  setFeedback(
-                    `Download selected receipts (${selectedReceiptIds.size}) — preview bundle. Includes receipt IDs, dates, amounts, categories, and methods.`,
-                  )
-                }
-              >
-                <FileText className="size-4" aria-hidden />
-                Download selected receipts
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 border-white/15 bg-transparent text-white hover:bg-white/[0.06]"
-                onClick={() => setFeedback(`Download annual giving statement for ${now.getFullYear()} (preview PDF).`)}
-              >
-                <Download className="size-4 text-amber-200/80" aria-hidden />
-                Download annual giving statement
-              </Button>
+            <CardContent className="space-y-4">
+              {isDemo ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 border-amber-500/25 bg-[#0c1824]/80 text-amber-50 hover:bg-[#0c1824]"
+                    disabled={selectedReceiptIds.size === 0}
+                    onClick={() =>
+                      setFeedback(
+                        `Download selected receipts (${selectedReceiptIds.size}) — preview bundle. Includes receipt IDs, dates, amounts, categories, and methods.`,
+                      )
+                    }
+                  >
+                    <FileText className="size-4" aria-hidden />
+                    Download selected receipts
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 border-white/15 bg-transparent text-white hover:bg-white/[0.06]"
+                    onClick={() => setFeedback(`Download annual giving statement for ${now.getFullYear()} (preview PDF).`)}
+                  >
+                    <Download className="size-4 text-amber-200/80" aria-hidden />
+                    Download annual giving statement
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {statementsQuery.isLoading ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-6 text-sm text-slate-300">
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Loading your giving statements…
+                    </div>
+                  ) : statementsQuery.error ? (
+                    <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                      {statementsQuery.error}
+                    </div>
+                  ) : liveStatements.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-6 text-center">
+                      <p className="text-sm font-medium text-white">No statements yet</p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {isLinked
+                          ? "Your generated giving statements will appear here."
+                          : "Statements will appear when your profile is linked."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {liveStatements.map((statement) => (
+                        <article
+                          key={statement.id}
+                          className="rounded-xl border border-white/10 bg-[#0c1824]/60 px-4 py-3"
+                        >
+                          <p className="text-sm font-medium text-white">{statement.period}</p>
+                          <div className="mt-2 grid gap-2 text-xs text-slate-400 sm:grid-cols-2">
+                            <p>
+                              Total amount:{" "}
+                              <span className="font-medium tabular-nums text-white">
+                                {formatCurrency(statement.totalAmount)}
+                              </span>
+                            </p>
+                            <p>
+                              Generated:{" "}
+                              <span className="text-slate-300">
+                                {formatGivingStatementDate(statement.generatedDate)}
+                              </span>
+                            </p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -510,45 +816,104 @@ export function MemberGivingPageView() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base text-white sm:text-lg">
                 Pledge tracking
-                <PreviewBadge label="Preview" />
+                {isDemo ? <PreviewBadge label="Preview" /> : null}
               </CardTitle>
               <CardDescription>Honouring commitments at a pace that fits your season.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <PreviewSectionNotice message="Preview only — pledge progress is not connected to /giving/me yet." />
-              {pledgeRows.map((p) => {
-                const balance = Math.max(0, p.target - p.paid);
-                const pct = Math.min(100, Math.round((p.paid / p.target) * 100));
-                return (
-                  <div key={p.id} className="rounded-xl border border-white/10 bg-[#0c1824]/60 px-4 py-3">
-                    <p className="text-sm font-medium text-white">{p.name}</p>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500 sm:grid-cols-4">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide">Target</p>
-                        <p className="mt-0.5 tabular-nums text-slate-300">{formatCurrency(p.target)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide">Paid</p>
-                        <p className="mt-0.5 tabular-nums text-emerald-200/90">{formatCurrency(p.paid)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide">Balance</p>
-                        <p className="mt-0.5 tabular-nums text-amber-100/90">{formatCurrency(balance)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide">Progress</p>
-                        <p className="mt-0.5 tabular-nums text-white">{pct}%</p>
-                      </div>
-                    </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-amber-700/80 to-amber-400/70 transition-[width] duration-300"
-                        style={{ width: `${pct}%` }}
+              {isDemo ? (
+                <>
+                  <PreviewSectionNotice message="Preview only — pledge progress is stored locally in demo mode." />
+                  {demoPledgeRows.map((p) => (
+                    <PledgeProgressCard key={p.id} pledge={p} showControls={false} />
+                  ))}
+                </>
+              ) : pledgesQuery.isLoading ? (
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-6 text-sm text-slate-300">
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Loading your pledges…
+                </div>
+              ) : pledgesQuery.error ? (
+                <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {pledgesQuery.error}
+                </div>
+              ) : (
+                <>
+                  {showGivingControls ? (
+                    <div className="rounded-xl border border-white/10 bg-[#0c1824]/60 px-4 py-3 space-y-3">
+                      <p className="text-sm font-medium text-white">Create a pledge</p>
+                      <input
+                        value={pledgeTitle}
+                        onChange={(event) => {
+                          setPledgeTitle(event.target.value);
+                          if (pledgeFormError) setPledgeFormError("");
+                        }}
+                        placeholder="Pledge title"
+                        className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-amber-400/25"
                       />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <input
+                          value={pledgeAmount}
+                          onChange={(event) => {
+                            setPledgeAmount(event.target.value);
+                            if (pledgeFormError) setPledgeFormError("");
+                          }}
+                          placeholder="Amount"
+                          inputMode="decimal"
+                          className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-amber-400/25"
+                        />
+                        <input
+                          type="date"
+                          value={pledgeTargetDate}
+                          onChange={(event) => {
+                            setPledgeTargetDate(event.target.value);
+                            if (pledgeFormError) setPledgeFormError("");
+                          }}
+                          className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-amber-400/25"
+                        />
+                      </div>
+                      {pledgeFormError ? <p className="text-xs text-destructive">{pledgeFormError}</p> : null}
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-9 rounded-lg"
+                        disabled={isCreatingPledge}
+                        onClick={() => void handleCreatePledge()}
+                      >
+                        {isCreatingPledge ? (
+                          <>
+                            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                            Creating…
+                          </>
+                        ) : (
+                          "Create pledge"
+                        )}
+                      </Button>
                     </div>
-                  </div>
-                );
-              })}
+                  ) : null}
+
+                  {livePledges.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-6 text-center">
+                      <p className="text-sm font-medium text-white">No pledges yet</p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {showGivingControls
+                          ? "Create a pledge above to track your commitment."
+                          : "Your pledges will appear when your profile is linked."}
+                      </p>
+                    </div>
+                  ) : (
+                    livePledges.map((pledge) => (
+                      <PledgeProgressCard
+                        key={pledge.id}
+                        pledge={pledge}
+                        showControls={showGivingControls}
+                        isUpdating={updatingPledgeId === pledge.id}
+                        onUpdate={showGivingControls ? handleUpdatePledgeProgress : undefined}
+                      />
+                    ))
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -567,51 +932,84 @@ export function MemberGivingPageView() {
         </div>
       </section>
 
-      {previewReceipt ? (
+      {(previewReceipt || liveReceiptGivingId) ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-8">
           <div className="w-full max-w-2xl rounded-2xl border border-white/15 bg-[#0d1b2b] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
-              <p className="text-sm font-semibold text-white">Receipt Preview</p>
+              <p className="text-sm font-semibold text-white">
+                {isDemo ? "Receipt Preview" : "Giving Receipt"}
+              </p>
               <button
                 type="button"
-                onClick={() => setPreviewReceiptId(null)}
+                onClick={closeReceiptModal}
                 className="rounded-md border border-white/15 px-2 py-1 text-xs text-slate-300 hover:bg-white/[0.06]"
               >
                 Close
               </button>
             </div>
             <div className="space-y-4 p-5">
-              <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-lg font-semibold text-white">ShepherdOS Giving Receipt</p>
-                <p className="mt-1 text-xs text-slate-400">Official record for member contribution (mock preview).</p>
-                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-                  <p className="text-slate-300">Receipt ID: <span className="font-mono text-amber-100/85">{previewReceipt.receiptId}</span></p>
-                  <p className="text-slate-300">Finance Ref: <span className="font-mono text-amber-100/85">{previewReceipt.financeReference}</span></p>
-                  <p className="text-slate-300">Date: {formatDisplayDate(previewReceipt.dateISO)}</p>
-                  <p className="text-slate-300">Amount: {formatCurrency(previewReceipt.amount)}</p>
-                  <p className="text-slate-300">Category: {previewReceipt.category}</p>
-                  <p className="text-slate-300">Payment method: {previewReceipt.paymentMethod}</p>
+              {liveReceiptLoading ? (
+                <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Loading receipt…
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-9 border-amber-500/25 bg-[#0c1824]/80 text-amber-50 hover:bg-[#0c1824]"
-                  onClick={() => setFeedback(`Download single receipt ${previewReceipt.receiptId} (preview PDF).`)}
-                >
-                  <Download className="size-4" aria-hidden />
-                  Download single receipt
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-9 border-white/15 bg-transparent text-white hover:bg-white/[0.06]"
-                  onClick={() => setFeedback(`Print-ready view for ${previewReceipt.receiptId} (preview).`)}
-                >
-                  Printable format
-                </Button>
-              </div>
+              ) : liveReceiptError ? (
+                <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">
+                  {liveReceiptError}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-lg font-semibold text-white">ShepherdOS Giving Receipt</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {isDemo ? "Official record for member contribution (mock preview)." : "Official record for your contribution."}
+                  </p>
+                  <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                    {previewReceipt ? (
+                      <>
+                        <p className="text-slate-300">Receipt ID: <span className="font-mono text-amber-100/85">{previewReceipt.receiptId}</span></p>
+                        <p className="text-slate-300">Finance Ref: <span className="font-mono text-amber-100/85">{previewReceipt.financeReference}</span></p>
+                        <p className="text-slate-300">Date: {formatDisplayDate(previewReceipt.dateISO)}</p>
+                        <p className="text-slate-300">Amount: {formatCurrency(previewReceipt.amount)}</p>
+                        <p className="text-slate-300">Category: {previewReceipt.category}</p>
+                        <p className="text-slate-300">Payment method: {previewReceipt.paymentMethod}</p>
+                      </>
+                    ) : liveReceipt ? (
+                      <>
+                        <p className="text-slate-300">Receipt ID: <span className="font-mono text-amber-100/85">{liveReceipt.receiptId}</span></p>
+                        <p className="text-slate-300">Finance Ref: <span className="font-mono text-amber-100/85">{liveReceipt.financeReference}</span></p>
+                        <p className="text-slate-300">Date: {formatDisplayDate(liveReceipt.dateISO)}</p>
+                        <p className="text-slate-300">Amount: {formatCurrency(liveReceipt.amount)}</p>
+                        <p className="text-slate-300">Category: {liveReceipt.category}</p>
+                        <p className="text-slate-300">Payment method: {liveReceipt.paymentMethod}</p>
+                        <p className="text-slate-300">Member: {liveReceipt.memberName}</p>
+                        <p className="text-slate-300">Church: {liveReceipt.churchName}</p>
+                        <p className="text-slate-300">Status: {liveReceipt.status}</p>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+              {isDemo && previewReceipt ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 border-amber-500/25 bg-[#0c1824]/80 text-amber-50 hover:bg-[#0c1824]"
+                    onClick={() => setFeedback(`Download single receipt ${previewReceipt.receiptId} (preview PDF).`)}
+                  >
+                    <Download className="size-4" aria-hidden />
+                    Download single receipt
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 border-white/15 bg-transparent text-white hover:bg-white/[0.06]"
+                    onClick={() => setFeedback(`Print-ready view for ${previewReceipt.receiptId} (preview).`)}
+                  >
+                    Printable format
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
