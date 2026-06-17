@@ -9,13 +9,13 @@ import {
 import {
   CalendarCheck2,
   CalendarDays,
-  ClipboardList,
   Sparkles,
   UserRoundPlus,
 } from "lucide-react";
 import { useMemo } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import { AttendanceCheckInPanel } from "@/components/dashboard/attendance/attendance-check-in-panel";
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SummaryCard } from "@/components/dashboard/shared/summary-card";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
@@ -216,18 +216,6 @@ export function AttendancePageView() {
       <PageHeader
         title="Attendance"
         description="See your personal participation history and gentle signals for follow-up—without losing the human story behind the numbers."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" className="h-10 rounded-xl">
-              <ClipboardList className="size-4" aria-hidden />
-              Record Attendance
-            </Button>
-            <Button className="h-10 rounded-xl">
-              <CalendarDays className="size-4" aria-hidden />
-              Create Service Session
-            </Button>
-          </div>
-        }
       />
 
       <ApiConnectionNotice
@@ -237,7 +225,20 @@ export function AttendancePageView() {
         liveLabel="Showing your personal attendance from /attendance/me."
       />
 
-      {attendanceQuery.isLive && !attendanceQuery.data.linked ? <MemberLinkedNotice /> : null}
+      {attendanceQuery.isLive && !attendanceQuery.data.linked ? (
+        <MemberLinkedNotice message="Your account is not linked to a member profile." />
+      ) : null}
+
+      {isDemo ? (
+        <AttendanceCheckInPanel mode="demo" summary={{}} sessions={sessionsData} />
+      ) : isLinked ? (
+        <AttendanceCheckInPanel
+          mode="live"
+          summary={attendanceQuery.data.summary}
+          sessions={sessionsData}
+          onCheckInSuccess={attendanceQuery.refetch}
+        />
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (

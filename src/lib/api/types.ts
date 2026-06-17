@@ -45,6 +45,15 @@ export type SessionUser = {
 
 export type MembersSummary = Record<string, unknown>;
 export type AttendanceSummary = Record<string, unknown>;
+
+export type AttendanceCheckInResult = {
+  status: string;
+  message: string;
+  lastCheckInAt: string;
+  sessionName: string;
+  checkedInToday: boolean;
+};
+
 export type FinanceSummary = Record<string, unknown>;
 
 export type ApiListResponse<T> = {

@@ -1,11 +1,55 @@
 import { apiAuthRequest } from "@/lib/api/client";
+import { formatApiValue } from "@/lib/api/formatters";
 import { unwrapMemberScope, type MemberScopeResult } from "@/lib/api/member-scope";
-import { unwrapApiList, unwrapApiSummary } from "@/lib/api/normalize";
-import type { ApiAttendanceSession, AttendanceSummary } from "@/lib/api/types";
+import { asRecord, unwrapApiList, unwrapApiSummary } from "@/lib/api/normalize";
+import type {
+  ApiAttendanceSession,
+  AttendanceCheckInResult,
+  AttendanceSummary,
+} from "@/lib/api/types";
 
 export async function fetchMyAttendance(): Promise<MemberScopeResult> {
   const response = await apiAuthRequest<unknown>("/attendance/me");
   return unwrapMemberScope(response);
+}
+
+function readBoolean(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return false;
+}
+
+export function unwrapAttendanceCheckIn(response: unknown): AttendanceCheckInResult {
+  const record = asRecord(response);
+  const data = asRecord(record.data ?? record.checkIn ?? record.result ?? record);
+
+  return {
+    status: formatApiValue(data.status ?? data.checkInStatus ?? record.status, "checked_in"),
+    message: formatApiValue(
+      data.message ?? record.message,
+      "Your attendance has been recorded.",
+    ),
+    lastCheckInAt: formatApiValue(
+      data.lastCheckInAt ?? data.lastCheckIn ?? data.checkedInAt ?? data.timestamp,
+      "—",
+    ),
+    sessionName: formatApiValue(
+      data.sessionName ?? data.service ?? data.serviceName ?? data.session,
+      "—",
+    ),
+    checkedInToday: readBoolean(
+      data.checkedInToday ?? data.alreadyCheckedIn ?? data.isCheckedInToday,
+    ),
+  };
+}
+
+export async function checkInAttendance(): Promise<AttendanceCheckInResult> {
+  const response = await apiAuthRequest<unknown>("/attendance/me/check-in", {
+    method: "POST",
+    body: {},
+  });
+  return unwrapAttendanceCheckIn(response);
 }
 
 export async function fetchAttendanceSummary(): Promise<AttendanceSummary> {
