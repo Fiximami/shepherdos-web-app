@@ -13,6 +13,7 @@ const memberAlphaPaths = new Set<string>([
   routes.app.settings,
   routes.app.prayerRequests,
   routes.app.counselling,
+  routes.app.events,
 ]);
 
 const memberBetaPaths = new Set<string>([
@@ -41,7 +42,6 @@ const adminBetaPaths = new Set<string>([
 const hiddenMemberPaths = new Set<string>([
   routes.app.finance,
   routes.app.feed,
-  routes.app.events,
   routes.app.store,
   routes.app.celebrations,
   routes.app.notifications,

@@ -90,6 +90,29 @@ export type CounsellingRequestCreate = {
   description: string;
 };
 
+export type ApiEventRegistration = {
+  id?: string;
+  eventId?: string;
+  event_id?: string;
+  eventName?: string;
+  name?: string;
+  title?: string;
+  status?: string;
+  registrationStatus?: string;
+  eventDate?: string;
+  date?: string;
+  startsAt?: string;
+  startDate?: string;
+  createdAt?: string;
+};
+
+export type EventRegistrationResult = {
+  status: string;
+  message: string;
+  eventId: string;
+  registrationStatus: string;
+};
+
 export type FinanceSummary = Record<string, unknown>;
 
 export type ApiListResponse<T> = {

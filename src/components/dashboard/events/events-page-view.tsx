@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock3,
   HeartHandshake,
+  Loader2,
   LocateFixed,
   MapPin,
   Sparkles,
@@ -14,9 +15,22 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
+import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
+import { FormToast } from "@/components/shared/form-toast";
+import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useApiData } from "@/hooks/use-api-data";
+import {
+  fetchMyEventRegistrations,
+  formatEventRegistrationDate,
+  mapMemberEventRegistration,
+  registerForEvent,
+} from "@/lib/api/events";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
 import { appendSmartAttendanceRecord, readSmartAttendanceRecords } from "@/lib/smart-attendance-storage";
+import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
 
 type MemberEvent = {
@@ -137,9 +151,20 @@ const calendarPreview = [
 ] as const;
 
 export function EventsPageView() {
+  const { isDemo } = useAuth();
   const featuredEvent = memberEvents.find((event) => event.featured) ?? memberEvents[0];
   const [selectedEventId, setSelectedEventId] = useState(featuredEvent.id);
-  const [registeredEventIds, setRegisteredEventIds] = useState<string[]>([featuredEvent.id]);
+  const [demoRegisteredIds, setDemoRegisteredIds] = useState<string[]>([featuredEvent.id]);
+  const [registeringEventId, setRegisteringEventId] = useState<string | null>(null);
+  const [registerToast, setRegisterToast] = useState<{
+    message: string;
+    variant: "success" | "error";
+  } | null>(null);
+  const registrationsQuery = useApiData(
+    "member-event-registrations",
+    fetchMyEventRegistrations,
+    EMPTY_MEMBER_SCOPE,
+  );
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [calendarFeedback, setCalendarFeedback] = useState("");
   const [pendingCheckIn, setPendingCheckIn] = useState<{
@@ -161,6 +186,85 @@ export function EventsPageView() {
     () => memberEvents.find((event) => event.id === selectedEventId) ?? featuredEvent,
     [featuredEvent, selectedEventId],
   );
+
+  const isLinked = registrationsQuery.isLive && registrationsQuery.data.linked;
+  const showRegistrationControls = isDemo || isLinked;
+
+  const liveRegistrations = useMemo(() => {
+    if (!isLinked) return [];
+    return registrationsQuery.data.items.map((item, index) =>
+      mapMemberEventRegistration(item as Record<string, unknown>, index),
+    );
+  }, [isLinked, registrationsQuery.data.items]);
+
+  const registeredEventIds = isDemo
+    ? demoRegisteredIds
+    : liveRegistrations.map((registration) => registration.eventId);
+
+  const isEventRegistered = (eventId: string) => registeredEventIds.includes(eventId);
+
+  const handleDemoRegister = (eventId: string) => {
+    setDemoRegisteredIds((current) => (current.includes(eventId) ? current : [eventId, ...current]));
+    setCalendarFeedback("Registered in demo mode. Sign in with a live linked account to sync with the server.");
+  };
+
+  const handleLiveRegister = async (eventId: string) => {
+    if (registeringEventId || isEventRegistered(eventId)) return;
+    setRegisteringEventId(eventId);
+    setRegisterToast(null);
+
+    try {
+      const result = await registerForEvent(eventId);
+      setRegisterToast({
+        message: result.message,
+        variant: "success",
+      });
+      registrationsQuery.refetch();
+    } catch (cause) {
+      setRegisterToast({ message: getApiErrorMessage(cause), variant: "error" });
+    } finally {
+      setRegisteringEventId(null);
+    }
+  };
+
+  const handleRegister = (eventId: string) => {
+    if (isDemo) {
+      handleDemoRegister(eventId);
+      return;
+    }
+    void handleLiveRegister(eventId);
+  };
+
+  const renderRegisterButton = (eventId: string, className?: string) => {
+    if (!showRegistrationControls) return null;
+
+    const isRegistered = isEventRegistered(eventId);
+    const isRegistering = registeringEventId === eventId;
+
+    return (
+      <Button
+        type="button"
+        size="sm"
+        className={className}
+        disabled={isRegistered || isRegistering}
+        onClick={() => handleRegister(eventId)}
+      >
+        {isRegistering ? (
+          <>
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            Registering…
+          </>
+        ) : isRegistered ? (
+          <>
+            <CheckCircle2 className="size-3.5" aria-hidden />
+            Registered
+          </>
+        ) : (
+          "Register"
+        )}
+      </Button>
+    );
+  };
 
   const suspiciousCount = useMemo(
     () => attendanceRecords.filter((r) => r.status === "Location Mismatch" || r.status === "Suspicious Pattern").length,
@@ -292,6 +396,27 @@ export function EventsPageView() {
         </div>
       </section>
 
+      {!isDemo ? (
+        <ApiConnectionNotice
+          isLoading={registrationsQuery.isLoading}
+          error={registrationsQuery.error}
+          isLive={registrationsQuery.isLive}
+          liveLabel="Your event registrations load from /events/my-registrations."
+        />
+      ) : null}
+
+      {registerToast ? (
+        <FormToast
+          message={registerToast.message}
+          variant={registerToast.variant}
+          onDismiss={() => setRegisterToast(null)}
+        />
+      ) : null}
+
+      {registrationsQuery.isLive && !registrationsQuery.data.linked ? (
+        <MemberLinkedNotice message="Your account is not linked to a member profile." />
+      ) : null}
+
       <section className="shepherd-fade-in">
         <Card className="border-amber-200/20 bg-white/[0.06] shadow-[0_20px_46px_-34px_rgba(0,0,0,0.72)]">
           <CardHeader>
@@ -322,17 +447,7 @@ export function EventsPageView() {
                 <LocateFixed className="size-3.5" aria-hidden />
                 Mark Present
               </Button>
-              <Button
-                size="sm"
-                className="h-9 rounded-lg"
-                onClick={() =>
-                  setRegisteredEventIds((current) =>
-                    current.includes(featuredEvent.id) ? current : [featuredEvent.id, ...current],
-                  )
-                }
-              >
-                Register
-              </Button>
+              {renderRegisterButton(featuredEvent.id, "h-9 rounded-lg")}
               <Button
                 size="sm"
                 variant="outline"
@@ -407,18 +522,7 @@ export function EventsPageView() {
                         <LocateFixed className="size-3.5" aria-hidden />
                         Mark Present
                       </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-8 rounded-lg px-3 text-xs"
-                        onClick={() =>
-                          setRegisteredEventIds((current) =>
-                            current.includes(event.id) ? current : [event.id, ...current],
-                          )
-                        }
-                      >
-                        Register
-                      </Button>
+                      {renderRegisterButton(event.id, "h-8 rounded-lg px-3 text-xs")}
                       <Button
                         type="button"
                         size="sm"
@@ -475,33 +579,71 @@ export function EventsPageView() {
           <Card className="border-white/10 bg-white/[0.05] shadow-[0_18px_40px_-32px_rgba(0,0,0,0.72)]">
             <CardHeader>
               <CardTitle className="text-base sm:text-lg">My registrations</CardTitle>
-              <CardDescription>Your confirmed event list in this preview build.</CardDescription>
+              <CardDescription>
+                {isDemo
+                  ? "Your confirmed event list in this preview build."
+                  : "Your confirmed event registrations."}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {registeredEventIds.length === 0 ? (
+              {isDemo ? (
+                demoRegisteredIds.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-6 text-center">
+                    <p className="text-sm font-medium text-white">No registrations yet</p>
+                    <p className="mt-1 text-xs text-gray-400">
+                      Start with one event above and it will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  demoRegisteredIds.map((eventId) => {
+                    const event = memberEvents.find((item) => item.id === eventId);
+                    if (!event) return null;
+                    return (
+                      <article key={event.id} className="rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3">
+                        <p className="text-sm font-medium text-white">{event.title}</p>
+                        <p className="mt-1 text-xs text-gray-400">{event.when}</p>
+                        <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-emerald-200">
+                          <CheckCircle2 className="size-3.5" aria-hidden />
+                          Registered
+                        </p>
+                      </article>
+                    );
+                  })
+                )
+              ) : registrationsQuery.isLoading ? (
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-6 text-sm text-gray-300">
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Loading your registrations…
+                </div>
+              ) : registrationsQuery.error ? (
+                <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {registrationsQuery.error}
+                </div>
+              ) : liveRegistrations.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-6 text-center">
                   <p className="text-sm font-medium text-white">No registrations yet</p>
                   <p className="mt-1 text-xs text-gray-400">
-                    Start with one event above and it will appear here.
+                    {isLinked
+                      ? "Register for an event above and it will appear here."
+                      : "Your registrations will appear here when your profile is linked."}
                   </p>
                 </div>
               ) : (
-                registeredEventIds.map((eventId) => {
-                  const event = memberEvents.find((item) => item.id === eventId);
-                  if (!event) {
-                    return null;
-                  }
-                  return (
-                    <article key={event.id} className="rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3">
-                      <p className="text-sm font-medium text-white">{event.title}</p>
-                      <p className="mt-1 text-xs text-gray-400">{event.when}</p>
-                      <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-emerald-200">
-                        <CheckCircle2 className="size-3.5" aria-hidden />
-                        Registered
-                      </p>
-                    </article>
-                  );
-                })
+                liveRegistrations.map((registration) => (
+                  <article
+                    key={registration.id}
+                    className="rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3"
+                  >
+                    <p className="text-sm font-medium text-white">{registration.eventName}</p>
+                    <p className="mt-1 text-xs text-gray-400">
+                      {formatEventRegistrationDate(registration.eventDate)}
+                    </p>
+                    <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-emerald-200">
+                      <CheckCircle2 className="size-3.5" aria-hidden />
+                      {registration.status}
+                    </p>
+                  </article>
+                ))
               )}
             </CardContent>
           </Card>

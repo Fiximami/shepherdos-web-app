@@ -32,6 +32,8 @@ function extractNestedList(record: Record<string, unknown>): unknown[] {
     record.prayerRequests,
     record.counselling,
     record.counsellingRequests,
+    record.registrations,
+    record.eventRegistrations,
   ];
 
   for (const candidate of candidates) {
