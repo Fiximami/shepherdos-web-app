@@ -4,7 +4,8 @@ import { useMemo } from "react";
 
 import { pickSummaryValue } from "@/lib/api/formatters";
 import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
-import { fetchMyMemberProfile } from "@/lib/api/members";
+import { extractMemberPreferences, fetchMyMemberProfile } from "@/lib/api/members";
+import type { MemberPreferences } from "@/lib/api/types";
 import { resolveDisplayName } from "@/lib/auth/display-identity";
 import { getDemoSessionUser } from "@/lib/auth/map-user";
 import { useApiData } from "@/hooks/use-api-data";
@@ -23,6 +24,13 @@ const demoProfileFields = {
   pastor: "Ps. Emmanuel Boateng",
   membershipStatus: "Active member",
 } as const;
+
+const demoPreferences: MemberPreferences = {
+  emailNotifications: true,
+  smsNotifications: false,
+  prayerUpdates: true,
+  eventReminders: true,
+};
 
 export function useMemberProfileFields() {
   const { user, isDemo, status } = useAuth();
@@ -97,6 +105,13 @@ export function useMemberProfileFields() {
     };
   }, [displayUser.email, isAuthenticatedLive, isLinked, profileData]);
 
+  const preferences = useMemo((): MemberPreferences => {
+    if (!isAuthenticatedLive || !isLinked) {
+      return demoPreferences;
+    }
+    return extractMemberPreferences(profileData);
+  }, [isAuthenticatedLive, isLinked, profileData]);
+
   return {
     user: displayUser,
     displayName,
@@ -105,5 +120,7 @@ export function useMemberProfileFields() {
     memberQuery,
     profileQuery: memberQuery,
     fields,
+    preferences,
+    refetchProfile: memberQuery.refetch,
   };
 }

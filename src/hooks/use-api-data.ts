@@ -10,6 +10,7 @@ type ApiDataState<T> = {
   isLoading: boolean;
   error: string | null;
   isLive: boolean;
+  refetch: () => void;
 };
 
 export function useApiData<T>(
@@ -21,6 +22,7 @@ export function useApiData<T>(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +61,7 @@ export function useApiData<T>(
     };
     // fetchKey identifies the request; loader is intentionally excluded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchKey]);
+  }, [fetchKey, refreshKey]);
 
-  return { data, isLoading, error, isLive };
+  return { data, isLoading, error, isLive, refetch: () => setRefreshKey((value) => value + 1) };
 }

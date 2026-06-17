@@ -10,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 
+import { ProfileEditForm } from "@/components/dashboard/profile/profile-edit-form";
 import { PageHeader } from "@/components/dashboard/layout/page-header";
 import { SettingsPlaceholderRow } from "@/components/dashboard/settings/settings-section-shell";
 import { PreviewBadge } from "@/components/shared/preview-badge";
@@ -37,7 +38,10 @@ const skillsAndInterests = [
 ] as const;
 
 export function ProfilePageView() {
-  const { user, isAuthenticatedLive, isLinked, profileQuery, fields } = useMemberProfileFields();
+  const { user, isAuthenticatedLive, isLinked, profileQuery, fields, refetchProfile } =
+    useMemberProfileFields();
+
+  const canEditProfile = isAuthenticatedLive && isLinked && profileQuery.isLive;
 
   const initials = user.name
     .split(" ")
@@ -112,10 +116,22 @@ export function ProfilePageView() {
           </CardHeader>
           <CardContent className="space-y-3">
             <SettingsPlaceholderRow label="Full name" value={user.name} />
-            <SettingsPlaceholderRow label="Email" value={fields.email} />
-            <SettingsPlaceholderRow label="Phone" value={fields.phone} />
-            <SettingsPlaceholderRow label="Date of birth" value={fields.dateOfBirth} />
-            <SettingsPlaceholderRow label="Address" value={fields.address} />
+            {canEditProfile ? (
+              <ProfileEditForm
+                email={fields.email}
+                phone={fields.phone}
+                address={fields.address}
+                dateOfBirth={fields.dateOfBirth}
+                onSaved={refetchProfile}
+              />
+            ) : (
+              <>
+                <SettingsPlaceholderRow label="Email" value={fields.email} />
+                <SettingsPlaceholderRow label="Phone" value={fields.phone} />
+                <SettingsPlaceholderRow label="Date of birth" value={fields.dateOfBirth} />
+                <SettingsPlaceholderRow label="Address" value={fields.address} />
+              </>
+            )}
             <SettingsPlaceholderRow label="Emergency contact" value={fields.emergencyContact} />
           </CardContent>
         </Card>

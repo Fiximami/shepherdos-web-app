@@ -1,23 +1,26 @@
 "use client";
 
-import { BellRing, Globe2, Lock, ShieldCheck, SlidersHorizontal } from "lucide-react";
-import { useState } from "react";
+import { BellRing, Globe2, Lock, SlidersHorizontal } from "lucide-react";
 
 import { PageHeader } from "@/components/dashboard/layout/page-header";
+import { MemberPreferencesForm } from "@/components/dashboard/settings/member-preferences-form";
 import { SettingsPlaceholderRow, SettingsSectionShell } from "@/components/dashboard/settings/settings-section-shell";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { MemberLinkedNotice } from "@/components/shared/member-linked-notice";
 import { useMemberProfileFields } from "@/hooks/use-member-profile-fields";
 
 export function SettingsPageView() {
-  const { user, isAuthenticatedLive, isLinked, profileQuery, fields } = useMemberProfileFields();
-  const [allowEmailUpdates, setAllowEmailUpdates] = useState(true);
-  const [allowPushReminders, setAllowPushReminders] = useState(true);
-  const [allowPrayerUpdates, setAllowPrayerUpdates] = useState(true);
-  const [profileVisibility, setProfileVisibility] = useState<"Members" | "Leaders only">("Members");
-  const [messageRequests, setMessageRequests] = useState<"Anyone in church" | "Known contacts only">(
-    "Known contacts only",
-  );
+  const {
+    user,
+    isAuthenticatedLive,
+    isLinked,
+    profileQuery,
+    fields,
+    preferences,
+    refetchProfile,
+  } = useMemberProfileFields();
+
+  const canEditPreferences = isAuthenticatedLive && isLinked && profileQuery.isLive;
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-5 lg:p-6">
@@ -31,7 +34,7 @@ export function SettingsPageView() {
           isLoading={profileQuery.isLoading}
           error={profileQuery.error}
           isLive={profileQuery.isLive}
-          liveLabel="Account details use /members/me when your profile is linked."
+          liveLabel="Account details and preferences load from /members/me."
         />
       ) : null}
 
@@ -42,24 +45,11 @@ export function SettingsPageView() {
           title="Account preferences"
           description="Set your personal account defaults for a smoother day-to-day church experience."
           className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]"
-          preview
         >
           <SettingsPlaceholderRow label="Display name" value={user.name} />
           <SettingsPlaceholderRow label="Email" value={fields.email} />
           <SettingsPlaceholderRow label="Phone" value={fields.phone} />
           <SettingsPlaceholderRow label="Preferred service branch" value={fields.branch} />
-          <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-sm font-medium text-white">Weekly summary emails</span>
-            <button
-              type="button"
-              onClick={() => setAllowEmailUpdates((value) => !value)}
-              className={`rounded-full px-3 py-1 text-xs ${
-                allowEmailUpdates ? "bg-primary/15 text-primary" : "bg-white/[0.08] text-gray-300"
-              }`}
-            >
-              {allowEmailUpdates ? "Enabled" : "Disabled"}
-            </button>
-          </div>
         </SettingsSectionShell>
       </section>
 
@@ -68,39 +58,14 @@ export function SettingsPageView() {
           title="Notification preferences"
           description="Choose what updates you want to receive and how often."
           className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]"
-          preview
         >
-          <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="inline-flex items-center gap-2 text-sm font-medium text-white">
-              <BellRing className="size-4 text-blue-200/90" aria-hidden />
-              Event reminders
-            </span>
-            <button
-              type="button"
-              onClick={() => setAllowPushReminders((value) => !value)}
-              className={`rounded-full px-3 py-1 text-xs ${
-                allowPushReminders ? "bg-primary/15 text-primary" : "bg-white/[0.08] text-gray-300"
-              }`}
-            >
-              {allowPushReminders ? "Enabled" : "Disabled"}
-            </button>
-          </div>
-          <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="inline-flex items-center gap-2 text-sm font-medium text-white">
-              <ShieldCheck className="size-4 text-blue-200/90" aria-hidden />
-              Prayer response updates
-            </span>
-            <button
-              type="button"
-              onClick={() => setAllowPrayerUpdates((value) => !value)}
-              className={`rounded-full px-3 py-1 text-xs ${
-                allowPrayerUpdates ? "bg-primary/15 text-primary" : "bg-white/[0.08] text-gray-300"
-              }`}
-            >
-              {allowPrayerUpdates ? "Enabled" : "Disabled"}
-            </button>
-          </div>
-          <SettingsPlaceholderRow label="Community feed digest" value="Twice per week" />
+          {canEditPreferences ? (
+            <MemberPreferencesForm preferences={preferences} onSaved={() => refetchProfile()} />
+          ) : (
+            <p className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-gray-300">
+              Notification preferences are available when your member profile is linked.
+            </p>
+          )}
         </SettingsSectionShell>
       </section>
 
@@ -111,44 +76,11 @@ export function SettingsPageView() {
           className="border-white/10 bg-white/[0.05] shadow-[0_18px_42px_-34px_rgba(0,0,0,0.72)]"
           preview
         >
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-            <p className="text-sm font-medium text-white">Profile visibility</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(["Members", "Leaders only"] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setProfileVisibility(option)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs ${
-                    profileVisibility === option
-                      ? "border-primary/35 bg-primary/12 text-white"
-                      : "border-white/10 bg-white/[0.04] text-gray-300"
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-            <p className="text-sm font-medium text-white">Direct message requests</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(["Anyone in church", "Known contacts only"] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setMessageRequests(option)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs ${
-                    messageRequests === option
-                      ? "border-primary/35 bg-primary/12 text-white"
-                      : "border-white/10 bg-white/[0.04] text-gray-300"
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
+          <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-8 text-center">
+            <p className="text-sm font-medium text-white">Privacy controls coming soon</p>
+            <p className="mt-1 text-sm text-gray-400">
+              Profile visibility and direct message preferences will be connected in a future release.
+            </p>
           </div>
         </SettingsSectionShell>
       </section>

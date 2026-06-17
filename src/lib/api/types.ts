@@ -114,6 +114,22 @@ export type ApiAuditLog = {
 
 export type ApiSettings = Record<string, unknown>;
 
+export type MemberProfileUpdate = {
+  email?: string;
+  phone?: string;
+  address?: string;
+  dateOfBirth?: string;
+};
+
+export type MemberPreferences = {
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  prayerUpdates: boolean;
+  eventReminders: boolean;
+};
+
+export type MemberPreferencesUpdate = Partial<MemberPreferences>;
+
 export type MemberScopeResult<T = Record<string, unknown>> = {
   linked: boolean;
   summary: Record<string, unknown>;
