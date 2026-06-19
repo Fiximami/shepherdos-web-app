@@ -13,3 +13,11 @@ export function useCurrentUser(): SessionUser {
 
   return getEmptySessionUser();
 }
+
+export function useSessionUserOrNull(): SessionUser | null {
+  const { user, isDemo } = useAuth();
+
+  if (user) return user;
+  if (isDemo) return getDemoSessionUser();
+  return null;
+}

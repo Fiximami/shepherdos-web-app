@@ -3,16 +3,17 @@
 import { BriefcaseBusiness, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { GlobalSearch } from "@/components/dashboard/layout/global-search";
 import { NotificationsMenu } from "@/components/dashboard/layout/notifications-menu";
 import { QuickActions } from "@/components/dashboard/layout/quick-actions";
 import { UserMenu } from "@/components/dashboard/layout/user-menu";
+import { LeadershipAccessDebug } from "@/components/shared/leadership-access-debug";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useDisplayIdentity } from "@/hooks/use-display-identity";
-import { canAccessLeadershipConsole as userCanAccessLeadershipConsole } from "@/lib/auth/leadership-access";
+import { useLeadershipAccess } from "@/hooks/use-leadership-access";
 import { getProductName, showPreviewRoutes } from "@/lib/config/product";
 import { cn } from "@/lib/utils";
 
@@ -30,34 +31,32 @@ export function Topbar({
   const [logoMissing, setLogoMissing] = useState(false);
   const currentUser = useCurrentUser();
   const { displayName, churchName, churchLogo, roleLabel } = useDisplayIdentity();
+  const { status, showLeadershipConsole } = useLeadershipAccess();
 
   const role = currentUser.role;
   const permissions = currentUser.permissions;
   const productName = getProductName();
   const showSearch = showPreviewRoutes();
-  const canAccessLeadershipConsole = useMemo(
-    () => userCanAccessLeadershipConsole(currentUser),
-    [currentUser],
-  );
 
   return (
     <header
       className={cn(
-        "sticky top-3 z-30 flex h-[4.25rem] items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 sm:px-6 shadow-[0_20px_45px_-28px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-xl",
+        "sticky top-3 z-30 flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 sm:px-6 shadow-[0_20px_45px_-28px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-xl",
         className,
       )}
     >
-      <Button
-        variant="outline"
-        size="icon"
-        className="md:hidden"
-        onClick={onOpenSidebar}
-        aria-label="Open sidebar"
-      >
-        <Menu className="size-4" aria-hidden />
-      </Button>
+      <div className="flex h-[3.25rem] items-center gap-3">
+        <Button
+          variant="outline"
+          size="icon"
+          className="md:hidden"
+          onClick={onOpenSidebar}
+          aria-label="Open sidebar"
+        >
+          <Menu className="size-4" aria-hidden />
+        </Button>
 
-      <div className="min-w-0 flex flex-1 items-center md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-6">
+        <div className="min-w-0 flex flex-1 items-center md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-6">
         <div className="min-w-[220px]">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/12 bg-white/[0.08] p-1">
@@ -101,15 +100,16 @@ export function Topbar({
             <QuickActions permissions={permissions} />
           </div>
 
-          {canAccessLeadershipConsole ? (
+          {showLeadershipConsole ? (
             <Button
               asChild
               size="sm"
-              className="hidden h-10 gap-1.5 rounded-xl bg-primary/90 text-primary-foreground shadow-[0_12px_30px_-18px_rgba(59,130,246,0.75)] hover:bg-primary md:inline-flex"
+              className="h-10 gap-1.5 rounded-xl bg-primary/90 text-primary-foreground shadow-[0_12px_30px_-18px_rgba(59,130,246,0.75)] hover:bg-primary sm:inline-flex"
             >
               <Link href="/admin">
                 <BriefcaseBusiness className="size-4" aria-hidden />
-                Leadership Console
+                <span className="hidden sm:inline">Leadership Console</span>
+                <span className="sm:hidden">Admin</span>
               </Link>
             </Button>
           ) : null}
@@ -120,9 +120,13 @@ export function Topbar({
             role={role}
             roleLabel={roleLabel}
             workspace={churchName || "Member workspace"}
+            showLeadershipConsole={showLeadershipConsole}
           />
         </div>
+        </div>
       </div>
+
+      <LeadershipAccessDebug user={currentUser} authStatus={status} />
     </header>
   );
 }

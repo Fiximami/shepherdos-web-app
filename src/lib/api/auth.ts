@@ -1,5 +1,6 @@
 import { apiAuthRequest, apiRequest } from "@/lib/api/client";
 import type { ApiUser, LoginRequest, LoginResponse } from "@/lib/api/types";
+import { unwrapApiUserResponse } from "@/lib/auth/unwrap-api-user";
 import { clearAccessToken, setAccessToken } from "@/lib/api/token-storage";
 
 function extractAccessToken(response: LoginResponse): string | null {
@@ -22,7 +23,8 @@ export async function login(request: LoginRequest) {
 }
 
 export async function fetchCurrentUser() {
-  return apiAuthRequest<ApiUser>("/auth/me");
+  const response = await apiAuthRequest<unknown>("/auth/me");
+  return unwrapApiUserResponse(response);
 }
 
 export function logout() {
