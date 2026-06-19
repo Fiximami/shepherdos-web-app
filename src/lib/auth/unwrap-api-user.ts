@@ -140,5 +140,6 @@ export function unwrapApiUserResponse(response: unknown): ApiUser {
     churchLogo: String(
       raw.churchLogo ?? asRecord(church).logoUrl ?? asRecord(church).logo ?? "",
     ),
+    churchSlug: String(raw.churchSlug ?? asRecord(church).slug ?? asRecord(raw.tenant).slug ?? ""),
   };
 }

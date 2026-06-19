@@ -2,15 +2,17 @@ import type { ApiUser, SessionUser } from "@/lib/api/types";
 import {
   resolveChurchLogo,
   resolveChurchName,
+  resolveChurchSlug,
   resolveDisplayName,
-  resolveRoleLabel,
 } from "@/lib/auth/display-identity";
+import { resolveCanonicalRoleLabel } from "@/lib/auth/session-identity";
 import {
   LEADERSHIP_ACCESS_PERMISSION,
   getUserRoles,
   normalizeRole,
   resolvePrimaryRole,
 } from "@/lib/auth/leadership-access";
+import { getDefaultChurchSlug } from "@/lib/api/config";
 import { mockUser } from "@/lib/mock-user";
 
 function extractApiRoles(user: ApiUser): string[] {
@@ -41,8 +43,11 @@ function normalizePermissions(permissions: string[] | undefined): string[] {
 export function mapApiUserToSession(user: ApiUser): SessionUser {
   const roles = extractApiRoles(user);
   const role = resolvePrimaryRole(roles.length > 0 ? roles : ["member"]);
+  const permissions = normalizePermissions(user.permissions);
+  const sessionRoles = getUserRoles({ role, roles, permissions });
   const churchName = resolveChurchName({ church: user.church, churchName: user.churchName });
   const churchLogo = resolveChurchLogo({ church: user.church, churchLogo: user.churchLogo });
+  const churchSlug = resolveChurchSlug({ church: user.church, churchSlug: user.churchSlug });
 
   return {
     id: user.id?.trim() || "",
@@ -53,11 +58,12 @@ export function mapApiUserToSession(user: ApiUser): SessionUser {
       email: user.email,
     }),
     role,
-    roles: getUserRoles({ role, roles, permissions: [] }),
-    roleLabel: resolveRoleLabel(role, user.roleLabel),
+    roles: sessionRoles,
+    roleLabel: resolveCanonicalRoleLabel({ role, roles: sessionRoles, permissions }),
     churchName,
     churchLogo,
-    permissions: normalizePermissions(user.permissions),
+    churchSlug,
+    permissions,
   };
 }
 
@@ -71,21 +77,25 @@ export function getEmptySessionUser(): SessionUser {
     roleLabel: "Member",
     churchName: "",
     churchLogo: "",
+    churchSlug: "",
     permissions: [],
   };
 }
 
 export function getDemoSessionUser(): SessionUser {
   const role = normalizeRole(mockUser.role);
+  const roles = [role];
+  const permissions = [...mockUser.permissions];
   return {
     id: mockUser.id,
     name: mockUser.name,
     email: "",
     role,
-    roles: [role],
-    roleLabel: mockUser.roleLabel,
+    roles,
+    roleLabel: resolveCanonicalRoleLabel({ role, roles, permissions }),
     churchName: mockUser.churchName,
     churchLogo: mockUser.churchLogo,
-    permissions: [...mockUser.permissions],
+    churchSlug: mockUser.churchSlug || getDefaultChurchSlug(),
+    permissions,
   };
 }

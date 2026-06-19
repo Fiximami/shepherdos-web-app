@@ -1,20 +1,18 @@
 "use client";
 
 import { BriefcaseBusiness, Menu } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 
 import { GlobalSearch } from "@/components/dashboard/layout/global-search";
 import { NotificationsMenu } from "@/components/dashboard/layout/notifications-menu";
 import { QuickActions } from "@/components/dashboard/layout/quick-actions";
 import { UserMenu } from "@/components/dashboard/layout/user-menu";
 import { LeadershipAccessDebug } from "@/components/shared/leadership-access-debug";
+import { TenantLogo } from "@/components/shared/tenant-logo";
 import { Button } from "@/components/ui/button";
-import { useCurrentUser } from "@/hooks/use-current-user";
 import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { useLeadershipAccess } from "@/hooks/use-leadership-access";
-import { getProductName, showPreviewRoutes } from "@/lib/config/product";
+import { showPreviewRoutes } from "@/lib/config/product";
 import { cn } from "@/lib/utils";
 
 type TopbarProps = {
@@ -28,14 +26,9 @@ export function Topbar({
   onOpenSidebar,
   className,
 }: TopbarProps) {
-  const [logoMissing, setLogoMissing] = useState(false);
-  const currentUser = useCurrentUser();
-  const { displayName, churchName, churchLogo, roleLabel } = useDisplayIdentity();
+  const identity = useDisplayIdentity();
   const { status, showLeadershipConsole } = useLeadershipAccess();
 
-  const role = currentUser.role;
-  const permissions = currentUser.permissions;
-  const productName = getProductName();
   const showSearch = showPreviewRoutes();
 
   return (
@@ -59,33 +52,13 @@ export function Topbar({
         <div className="min-w-0 flex flex-1 items-center md:grid md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-6">
         <div className="min-w-[220px]">
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/12 bg-white/[0.08] p-1">
-            {churchLogo && !logoMissing ? (
-              <Image
-                src={churchLogo}
-                alt={churchName ? `${churchName} logo` : "Church logo"}
-                fill
-                sizes="40px"
-                className="object-contain"
-                onError={() => setLogoMissing(true)}
-              />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">
-                {(churchName || "SO")
-                  .split(" ")
-                  .map((word) => word[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </span>
-            )}
-            </div>
+            <TenantLogo churchName={identity.churchName} churchLogo={identity.churchLogo} size={40} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold tracking-tight text-white">
-                {churchName || productName}
+                {identity.tenantDisplayName}
               </p>
               <p className="truncate text-xs text-gray-400">
-                {title} · {productName} workspace
+                {identity.formatPageWorkspaceLabel(title)}
               </p>
             </div>
           </div>
@@ -97,7 +70,7 @@ export function Topbar({
 
         <div className="ml-auto flex items-center gap-2.5">
           <div className="hidden md:block">
-            <QuickActions permissions={permissions} />
+            <QuickActions permissions={identity.permissions} />
           </div>
 
           {showLeadershipConsole ? (
@@ -114,19 +87,13 @@ export function Topbar({
             </Button>
           ) : null}
 
-          <NotificationsMenu role={role} />
-          <UserMenu
-            name={displayName}
-            role={role}
-            roleLabel={roleLabel}
-            workspace={churchName || "Member workspace"}
-            showLeadershipConsole={showLeadershipConsole}
-          />
+          <NotificationsMenu role={identity.role} />
+          <UserMenu showLeadershipConsole={showLeadershipConsole} />
         </div>
         </div>
       </div>
 
-      <LeadershipAccessDebug user={currentUser} authStatus={status} />
+      <LeadershipAccessDebug user={identity.sessionUser} authStatus={status} />
     </header>
   );
 }

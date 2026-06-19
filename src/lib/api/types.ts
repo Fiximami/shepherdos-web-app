@@ -31,6 +31,7 @@ export type ApiUser = {
   };
   churchName?: string;
   churchLogo?: string;
+  churchSlug?: string;
 };
 
 export type SessionUser = {
@@ -42,6 +43,7 @@ export type SessionUser = {
   roleLabel: string;
   churchName: string;
   churchLogo: string;
+  churchSlug: string;
   permissions: string[];
 };
 

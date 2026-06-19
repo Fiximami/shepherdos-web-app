@@ -67,3 +67,10 @@ export function resolveChurchLogo(options: {
 }): string {
   return options.church?.logoUrl?.trim() || options.church?.logo?.trim() || options.churchLogo?.trim() || "";
 }
+
+export function resolveChurchSlug(options: {
+  churchSlug?: string | null;
+  church?: ApiUser["church"];
+}): string {
+  return options.church?.slug?.trim() || options.churchSlug?.trim() || "";
+}

@@ -30,6 +30,7 @@ type MockUser = {
   roleLabel: string;
   churchName: string;
   churchLogo: string;
+  churchSlug: string;
   permissions: Permission[];
 };
 
@@ -39,8 +40,9 @@ export const mockUser: MockUser = {
   name: "John Doe",
   role: "church_admin",
   roleLabel: "Church Admin",
-  churchName: "Grace Community Church",
+  churchName: "Alpha Grace Church",
   churchLogo: "/images/branding/shepherdos-logo.png",
+  churchSlug: "alpha-grace-church",
   permissions: [
     "leadership.access",
     "members:create",

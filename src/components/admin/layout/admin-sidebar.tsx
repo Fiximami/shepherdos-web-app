@@ -6,7 +6,6 @@ import {
   BellRing,
   CalendarDays,
   ChartNoAxesCombined,
-  Church,
   ClipboardCheck,
   Boxes,
   Layers,
@@ -20,18 +19,17 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 
 import { PreviewBadge } from "@/components/shared/preview-badge";
+import { TenantLogo } from "@/components/shared/tenant-logo";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { canAccessAdminPath } from "@/lib/auth/admin-module-access";
 import { canAccessLeadershipConsole, isSuperAdmin } from "@/lib/auth/leadership-access";
 import { getRouteBadge, isPathAvailable } from "@/lib/config/alpha-routes";
-import { getProductName } from "@/lib/config/product";
 import { hasAnyPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -59,9 +57,8 @@ const adminNav = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const { churchName, churchLogo } = useDisplayIdentity();
+  const { churchName, churchLogo, tenantDisplayName } = useDisplayIdentity();
   const currentUser = useCurrentUser();
-  const productName = getProductName();
   const visibleNav = useMemo(
     () =>
       adminNav.filter((item) => {
@@ -89,21 +86,9 @@ export function AdminSidebar() {
     <aside className="flex h-full w-full flex-col rounded-2xl border border-white/10 bg-[#0e2237]/85 shadow-[0_20px_46px_-30px_rgba(0,0,0,0.72)] backdrop-blur-xl">
       <div className="border-b border-white/10 px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.06] p-1">
-            {churchLogo ? (
-              <Image
-                src={churchLogo}
-                alt={churchName ? `${churchName} logo` : "Church logo"}
-                fill
-                sizes="40px"
-                className="object-contain"
-              />
-            ) : (
-              <Church className="size-4 text-primary" aria-hidden />
-            )}
-          </div>
+          <TenantLogo churchName={churchName} churchLogo={churchLogo} size={40} />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{churchName || productName}</p>
+            <p className="truncate text-sm font-semibold text-white">{tenantDisplayName}</p>
             <p className="text-xs text-blue-100/80">Leadership Console</p>
           </div>
         </div>

@@ -6,10 +6,8 @@ import { pickSummaryValue } from "@/lib/api/formatters";
 import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
 import { extractMemberPreferences, fetchMyMemberProfile } from "@/lib/api/members";
 import type { MemberPreferences } from "@/lib/api/types";
-import { resolveDisplayName } from "@/lib/auth/display-identity";
-import { getDemoSessionUser } from "@/lib/auth/map-user";
 import { useApiData } from "@/hooks/use-api-data";
-import { useAuth } from "@/providers/auth-provider";
+import { useSessionIdentity } from "@/hooks/use-session-identity";
 
 const demoProfileFields = {
   memberId: "SHP-1044",
@@ -33,32 +31,15 @@ const demoPreferences: MemberPreferences = {
 };
 
 export function useMemberProfileFields() {
-  const { user, isDemo, status } = useAuth();
+  const { sessionUser, displayName, email, isLive, isDemo } = useSessionIdentity();
   const memberQuery = useApiData("member-profile-me", fetchMyMemberProfile, EMPTY_MEMBER_SCOPE);
 
-  const isAuthenticatedLive = status === "authenticated" && !isDemo && Boolean(user);
-  const demoUser = getDemoSessionUser();
+  const isAuthenticatedLive = isLive;
   const profileData = memberQuery.data.profile;
   const isLinked = memberQuery.isLive && memberQuery.data.linked;
 
-  const displayName = useMemo(() => {
-    if (!isAuthenticatedLive || !user) return demoUser.name;
-
-    const profileName = isLinked ? pickSummaryValue(profileData, ["name", "fullName"], "") : "";
-    return resolveDisplayName({
-      name: profileName || user.name,
-      fullName: user.name,
-      email: user.email,
-    });
-  }, [demoUser.name, isAuthenticatedLive, isLinked, profileData, user]);
-
-  const displayUser = useMemo(() => {
-    if (!isAuthenticatedLive || !user) return demoUser;
-    return { ...user, name: displayName };
-  }, [demoUser, displayName, isAuthenticatedLive, user]);
-
   const fields = useMemo(() => {
-    if (!isAuthenticatedLive) {
+    if (!isAuthenticatedLive && isDemo) {
       return {
         memberId: demoProfileFields.memberId,
         email: demoProfileFields.email,
@@ -74,10 +55,26 @@ export function useMemberProfileFields() {
       };
     }
 
+    if (!isAuthenticatedLive) {
+      return {
+        memberId: "—",
+        email: email || "—",
+        phone: "—",
+        dateOfBirth: "—",
+        address: "—",
+        joinedDate: "—",
+        emergencyContact: "—",
+        branch: "—",
+        fellowshipUnit: "—",
+        pastor: "—",
+        membershipStatus: "—",
+      };
+    }
+
     if (!isLinked) {
       return {
         memberId: "—",
-        email: displayUser.email || "—",
+        email: email || "—",
         phone: "—",
         dateOfBirth: "—",
         address: "—",
@@ -92,7 +89,7 @@ export function useMemberProfileFields() {
 
     return {
       memberId: pickSummaryValue(profileData, ["memberId", "membershipId", "id"], "—"),
-      email: pickSummaryValue(profileData, ["email"], displayUser.email || "—"),
+      email: pickSummaryValue(profileData, ["email"], email || "—"),
       phone: pickSummaryValue(profileData, ["phone", "phoneNumber"], "—"),
       dateOfBirth: pickSummaryValue(profileData, ["dateOfBirth", "dob", "birthDate"], "—"),
       address: pickSummaryValue(profileData, ["address"], "—"),
@@ -103,7 +100,7 @@ export function useMemberProfileFields() {
       pastor: pickSummaryValue(profileData, ["pastor", "pastoralOversight"], "—"),
       membershipStatus: pickSummaryValue(profileData, ["membershipStatus", "status"], "Active member"),
     };
-  }, [displayUser.email, isAuthenticatedLive, isLinked, profileData]);
+  }, [email, isAuthenticatedLive, isDemo, isLinked, profileData]);
 
   const preferences = useMemo((): MemberPreferences => {
     if (!isAuthenticatedLive || !isLinked) {
@@ -113,7 +110,7 @@ export function useMemberProfileFields() {
   }, [isAuthenticatedLive, isLinked, profileData]);
 
   return {
-    user: displayUser,
+    user: sessionUser,
     displayName,
     isAuthenticatedLive,
     isLinked,

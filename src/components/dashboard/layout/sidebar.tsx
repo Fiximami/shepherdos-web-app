@@ -5,7 +5,6 @@ import {
   CalendarDays,
   ClipboardCheck,
   Compass,
-  Church,
   Gift,
   CircleUserRound,
   HeartHandshake,
@@ -22,9 +21,9 @@ import type { ComponentType } from "react";
 import { useMemo } from "react";
 
 import { PreviewBadge } from "@/components/shared/preview-badge";
+import { TenantLogo } from "@/components/shared/tenant-logo";
 import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { getRouteBadge, isPathAvailable } from "@/lib/config/alpha-routes";
-import { getProductName } from "@/lib/config/product";
 import { routes } from "@/lib/constants/navigation";
 import { cn } from "@/lib/utils";
 
@@ -58,9 +57,15 @@ type SidebarProps = {
 };
 
 export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
-  const { displayName, firstName, churchName } = useDisplayIdentity();
+  const {
+    displayName,
+    firstName,
+    churchName,
+    churchLogo,
+    tenantDisplayName,
+    memberWorkspaceLabel,
+  } = useDisplayIdentity();
   const welcomeName = firstName || displayName;
-  const productName = getProductName();
 
   const visibleItems = useMemo(
     () => memberSidebarItems.filter((item) => isPathAvailable(item.href, "member")),
@@ -75,11 +80,9 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
       )}
     >
       <div className="flex items-center gap-3 border-b border-white/10 px-4 py-4">
-        <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Church className="size-4" aria-hidden />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-white">{productName}</p>
+        <TenantLogo churchName={churchName} churchLogo={churchLogo} size={36} />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-white">{tenantDisplayName}</p>
           <p className="text-xs text-gray-400">Member portal</p>
         </div>
       </div>
@@ -127,9 +130,7 @@ export function Sidebar({ currentPath, onNavigate, className }: SidebarProps) {
           </div>
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-white">Welcome, {welcomeName}</p>
-            <p className="truncate text-[11px] text-gray-400">
-              {churchName ? `${churchName} member` : "Member"}
-            </p>
+            <p className="truncate text-[11px] text-gray-400">{memberWorkspaceLabel}</p>
           </div>
         </div>
       </div>

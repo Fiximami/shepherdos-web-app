@@ -23,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { useMemberProfileFields } from "@/hooks/use-member-profile-fields";
 
 const ministryInvolvement = [
@@ -38,12 +39,13 @@ const skillsAndInterests = [
 ] as const;
 
 export function ProfilePageView() {
+  const { displayName, email: sessionEmail, roleLabel, churchName } = useDisplayIdentity();
   const { user, isAuthenticatedLive, isLinked, profileQuery, fields, refetchProfile } =
     useMemberProfileFields();
 
   const canEditProfile = isAuthenticatedLive && isLinked && profileQuery.isLive;
 
-  const initials = user.name
+  const initials = displayName
     .split(" ")
     .map((part) => part[0])
     .join("")
@@ -81,14 +83,15 @@ export function ProfilePageView() {
             </div>
             <div className="min-w-0 flex-1 space-y-1">
               <h2 className="text-lg font-semibold tracking-tight text-white sm:text-xl">
-                {user.name}
+                {displayName}
               </h2>
               <p className="text-sm text-gray-300">
-                {fields.membershipStatus} · {fields.branch}
+                {roleLabel}
+                {churchName ? ` · ${churchName}` : null}
               </p>
               <p className="flex items-center gap-2 text-sm text-gray-300">
                 <Mail className="size-3.5 shrink-0 text-blue-200/90" aria-hidden />
-                {fields.email}
+                {sessionEmail || fields.email}
               </p>
               <p className="text-xs text-gray-400">Member ID · {fields.memberId}</p>
             </div>
@@ -115,7 +118,7 @@ export function ProfilePageView() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <SettingsPlaceholderRow label="Full name" value={user.name} />
+            <SettingsPlaceholderRow label="Full name" value={displayName} />
             {canEditProfile ? (
               <ProfileEditForm
                 email={fields.email}
@@ -149,7 +152,7 @@ export function ProfilePageView() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <SettingsPlaceholderRow label="Church name" value={user.churchName} />
+            <SettingsPlaceholderRow label="Church name" value={churchName || user.churchName} />
             <SettingsPlaceholderRow label="Home branch" value={fields.branch} />
             <SettingsPlaceholderRow label="Membership status" value={fields.membershipStatus} />
             <SettingsPlaceholderRow label="Joined church" value={fields.joinedDate} />

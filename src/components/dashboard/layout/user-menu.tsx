@@ -2,39 +2,23 @@
 
 import { BriefcaseBusiness, LogOut, Settings, UserCircle2 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { LeadershipAccessDebug } from "@/components/shared/leadership-access-debug";
-import { useCurrentUser } from "@/hooks/use-current-user";
+import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { useLeadershipAccess } from "@/hooks/use-leadership-access";
-import { resolveRoleLabel } from "@/lib/auth/display-identity";
 import { routes } from "@/lib/constants/navigation";
 import { useAuth } from "@/providers/auth-provider";
 
 type UserMenuProps = {
-  name: string;
-  role: string;
-  roleLabel?: string;
-  workspace: string;
   showLeadershipConsole?: boolean;
 };
 
-export function UserMenu({
-  name,
-  role,
-  roleLabel,
-  workspace,
-  showLeadershipConsole = false,
-}: UserMenuProps) {
+export function UserMenu({ showLeadershipConsole = false }: UserMenuProps) {
   const { signOut } = useAuth();
-  const currentUser = useCurrentUser();
-  const { status } = useLeadershipAccess();
+  const { displayName, roleLabel, workspaceName, sessionUser } = useDisplayIdentity();
+  const { status: leadershipStatus } = useLeadershipAccess();
   const [isOpen, setIsOpen] = useState(false);
-
-  const resolvedRoleLabel = useMemo(
-    () => resolveRoleLabel(role, roleLabel),
-    [role, roleLabel],
-  );
 
   return (
     <div className="relative hidden sm:block">
@@ -47,8 +31,8 @@ export function UserMenu({
         <div className="flex items-center gap-2.5">
           <UserCircle2 className="size-4 text-gray-400" aria-hidden />
           <div className="leading-tight">
-            <p className="text-xs font-semibold text-white">{name}</p>
-            <p className="text-[11px] text-gray-400">{resolvedRoleLabel}</p>
+            <p className="text-xs font-semibold text-white">{displayName}</p>
+            <p className="text-[11px] text-gray-400">{roleLabel}</p>
           </div>
         </div>
         <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] uppercase tracking-wide text-gray-400">
@@ -62,9 +46,9 @@ export function UserMenu({
           onMouseLeave={() => setIsOpen(false)}
         >
           <div className="mb-2 rounded-lg bg-white/[0.05] px-3 py-2">
-            <p className="text-sm font-medium text-white">{name}</p>
-            <p className="text-xs text-gray-400">{resolvedRoleLabel}</p>
-            <p className="mt-1 text-[11px] text-gray-400">{workspace}</p>
+            <p className="text-sm font-medium text-white">{displayName}</p>
+            <p className="text-xs text-gray-400">{roleLabel}</p>
+            <p className="mt-1 text-[11px] text-gray-400">{workspaceName}</p>
           </div>
 
           <div className="space-y-1">
@@ -81,6 +65,7 @@ export function UserMenu({
             <Link
               href={routes.app.profile}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white transition-colors hover:bg-white/[0.08]"
+              onClick={() => setIsOpen(false)}
             >
               <UserCircle2 className="size-4 text-gray-300" aria-hidden />
               My Profile
@@ -88,6 +73,7 @@ export function UserMenu({
             <Link
               href={routes.app.settings}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white transition-colors hover:bg-white/[0.08]"
+              onClick={() => setIsOpen(false)}
             >
               <Settings className="size-4 text-gray-300" aria-hidden />
               Settings
@@ -105,7 +91,7 @@ export function UserMenu({
             </button>
           </div>
 
-          <LeadershipAccessDebug user={currentUser} authStatus={status} className="mt-2" />
+          <LeadershipAccessDebug user={sessionUser} authStatus={leadershipStatus} className="mt-2" />
         </div>
       ) : null}
     </div>

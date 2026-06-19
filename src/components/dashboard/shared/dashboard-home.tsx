@@ -26,6 +26,7 @@ import { fetchMyAttendance } from "@/lib/api/attendance";
 import { pickSummaryCurrency, pickSummaryValue } from "@/lib/api/formatters";
 import { fetchMyGiving } from "@/lib/api/giving";
 import { EMPTY_MEMBER_SCOPE } from "@/lib/api/member-scope";
+import { formatWelcomeDescription } from "@/lib/tenant/workspace-identity";
 import { useAuth } from "@/providers/auth-provider";
 
 const upcomingEvents = [
@@ -65,7 +66,7 @@ const demoAttendanceCards = [
 
 export function DashboardHome() {
   const { isDemo } = useAuth();
-  const { firstName } = useDisplayIdentity();
+  const { firstName, churchName } = useDisplayIdentity();
   const { user, isAuthenticatedLive, isLinked, memberQuery, fields } = useMemberProfileFields();
   const attendanceQuery = useApiData("member-dashboard-attendance-me", fetchMyAttendance, EMPTY_MEMBER_SCOPE);
   const givingQuery = useApiData("member-dashboard-giving-me", fetchMyGiving, EMPTY_MEMBER_SCOPE);
@@ -166,7 +167,7 @@ export function DashboardHome() {
         <div className="relative z-10">
           <PageHeader
             title={`Welcome back${welcomeName ? `, ${welcomeName}` : ""}`}
-            description="Your member dashboard keeps church life close and clear with upcoming moments, care updates, and community highlights in one calm place."
+            description={formatWelcomeDescription(churchName)}
           />
         </div>
       </section>
