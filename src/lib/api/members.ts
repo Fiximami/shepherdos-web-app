@@ -1,11 +1,13 @@
 import { apiAuthRequest } from "@/lib/api/client";
-import { asRecord, unwrapApiList, unwrapApiSummary } from "@/lib/api/normalize";
+import { asRecord, unwrapApiEntity, unwrapApiList, unwrapApiSummary } from "@/lib/api/normalize";
 import { unwrapMemberProfile, type MemberScopeResult } from "@/lib/api/member-scope";
 import type {
   ApiMember,
+  MemberCreate,
   MemberPreferences,
   MemberPreferencesUpdate,
   MemberProfileUpdate,
+  MemberUpdate,
   MembersSummary,
 } from "@/lib/api/types";
 
@@ -91,4 +93,20 @@ export async function fetchMembers(params?: { limit?: number; search?: string })
   const path = query ? `/members?${query}` : "/members";
   const response = await apiAuthRequest<unknown>(path);
   return unwrapApiList<ApiMember>(response);
+}
+
+export async function createMember(payload: MemberCreate): Promise<ApiMember> {
+  const response = await apiAuthRequest<unknown>("/members", {
+    method: "POST",
+    body: payload,
+  });
+  return unwrapApiEntity<ApiMember>(response);
+}
+
+export async function updateMember(memberId: string, payload: MemberUpdate): Promise<ApiMember> {
+  const response = await apiAuthRequest<unknown>(`/members/${encodeURIComponent(memberId)}`, {
+    method: "PATCH",
+    body: payload,
+  });
+  return unwrapApiEntity<ApiMember>(response);
 }

@@ -58,3 +58,20 @@ export function unwrapApiSummary(response: unknown): Record<string, unknown> {
 
   return record;
 }
+
+export function unwrapApiEntity<T>(response: unknown): T {
+  const record = asRecord(response);
+  const nested =
+    record.data ??
+    record.result ??
+    record.member ??
+    record.session ??
+    record.transaction ??
+    record.record;
+
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return nested as T;
+  }
+
+  return record as T;
+}

@@ -264,6 +264,64 @@ export type MemberPreferences = {
 
 export type MemberPreferencesUpdate = Partial<MemberPreferences>;
 
+export type MemberCreate = {
+  name: string;
+  email?: string;
+  phone?: string;
+  branch?: string;
+  ministry?: string;
+  department?: string;
+  status?: string;
+};
+
+export type MemberUpdate = Partial<MemberCreate>;
+
+export type AttendanceSessionCreate = {
+  serviceName: string;
+  date: string;
+  branch?: string;
+  department?: string;
+};
+
+export type AttendanceSessionUpdate = Partial<AttendanceSessionCreate>;
+
+export type AttendanceRecordCreate = {
+  sessionId: string;
+  memberId?: string;
+  totalPresent?: number;
+  firstTimers?: number;
+  presentCount?: number;
+};
+
+export type FinanceTransactionCreate = {
+  type: "income" | "expense";
+  category: string;
+  amount: number;
+  date?: string;
+  reference?: string;
+  source?: string;
+  description?: string;
+  department?: string;
+};
+
+export type FinanceTransactionStatusUpdate = {
+  status: "approved" | "rejected" | "pending";
+  reason?: string;
+};
+
+export type ChurchSettingsUpdate = {
+  name?: string;
+  churchName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+};
+
+export type GivingSettingsUpdate = {
+  defaultCurrency?: string;
+  currency?: string;
+};
+
 export type MemberScopeResult<T = Record<string, unknown>> = {
   linked: boolean;
   summary: Record<string, unknown>;

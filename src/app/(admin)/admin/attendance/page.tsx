@@ -4,15 +4,22 @@ import { CalendarPlus, ClipboardList, QrCode, ShieldCheck, Timer } from "lucide-
 import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import {
+  CreateSessionDialog,
+  EditSessionDialog,
+  RecordAttendanceDialog,
+} from "@/components/admin/actions/attendance-action-dialogs";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { PreviewSectionNotice, previewDescription } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
 import { useApiData } from "@/hooks/use-api-data";
-import { fetchAttendanceRecords, fetchAttendanceSessions, fetchAttendanceSummary } from "@/lib/api/attendance";
+import { fetchAttendanceRecords, fetchAttendanceSessions, fetchAttendanceSummary, closeAttendanceSession } from "@/lib/api/attendance";
+import { getApiErrorMessage } from "@/lib/api/errors";
 import { pickSummaryValue } from "@/lib/api/formatters";
 import { mapApiAttendanceRecord, mapApiAttendanceSession, type SessionRow } from "@/lib/api/mappers";
+import { hasPermission } from "@/lib/permissions";
 import { readSmartAttendanceRecords } from "@/lib/smart-attendance-storage";
 import { cn } from "@/lib/utils";
 
@@ -139,7 +146,12 @@ function smartStatusBadge(status: string) {
 }
 
 export default function AdminAttendancePage() {
+  const canRecordAttendance = hasPermission("attendance:record");
   const [feedback, setFeedback] = useState("");
+  const [createSessionOpen, setCreateSessionOpen] = useState(false);
+  const [recordAttendanceOpen, setRecordAttendanceOpen] = useState(false);
+  const [editSessionOpen, setEditSessionOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<SessionRow | null>(null);
   const [departmentFilter, setDepartmentFilter] = useState("All Departments");
   const [liveSmartRows, setLiveSmartRows] = useState<SmartAttendanceRow[]>([]);
 
@@ -268,20 +280,22 @@ export default function AdminAttendancePage() {
         title="Attendance Management"
         description="Track participation patterns and identify people who may need care."
         actions={
-          <>
-            <Button className="h-9 rounded-lg" onClick={() => setFeedback("Record Attendance will open when connected.")}>
-              <ClipboardList className="size-4" aria-hidden />
-              Record Attendance
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg border-white/15 bg-white/[0.06] text-white"
-              onClick={() => setFeedback("Create Service Session will open when connected.")}
-            >
-              <CalendarPlus className="size-4" aria-hidden />
-              Create Service Session
-            </Button>
-          </>
+          canRecordAttendance ? (
+            <>
+              <Button className="h-9 rounded-lg" onClick={() => setRecordAttendanceOpen(true)}>
+                <ClipboardList className="size-4" aria-hidden />
+                Record Attendance
+              </Button>
+              <Button
+                variant="outline"
+                className="h-9 rounded-lg border-white/15 bg-white/[0.06] text-white"
+                onClick={() => setCreateSessionOpen(true)}
+              >
+                <CalendarPlus className="size-4" aria-hidden />
+                Create Service Session
+              </Button>
+            </>
+          ) : null
         }
       />
 
@@ -383,18 +397,32 @@ export default function AdminAttendancePage() {
                     <div className="flex flex-wrap gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setFeedback(`View session: ${row.service} (${row.date})`)}
-                        className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-gray-300 hover:bg-white/[0.08]"
-                      >
-                        View
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFeedback(`Edit session: ${row.service}`)}
+                        onClick={() => {
+                          setSelectedSession(row);
+                          setEditSessionOpen(true);
+                        }}
                         className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-gray-300 hover:bg-white/[0.08]"
                       >
                         Edit
                       </button>
+                      {canRecordAttendance ? (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await closeAttendanceSession(row.id);
+                              setFeedback(`Session closed: ${row.service}.`);
+                              void sessionsQuery.refetch();
+                              void summaryQuery.refetch();
+                            } catch (error) {
+                              setFeedback(getApiErrorMessage(error));
+                            }
+                          }}
+                          className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-gray-300 hover:bg-white/[0.08]"
+                        >
+                          Close
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -628,6 +656,38 @@ export default function AdminAttendancePage() {
           ))}
         </div>
       </AdminCard>
+
+      <CreateSessionDialog
+        open={createSessionOpen}
+        onClose={() => setCreateSessionOpen(false)}
+        onSuccess={() => {
+          void sessionsQuery.refetch();
+          void summaryQuery.refetch();
+        }}
+      />
+      <RecordAttendanceDialog
+        open={recordAttendanceOpen}
+        sessions={sessions}
+        onClose={() => setRecordAttendanceOpen(false)}
+        onSuccess={() => {
+          void sessionsQuery.refetch();
+          void recordsQuery.refetch();
+          void summaryQuery.refetch();
+        }}
+      />
+      <EditSessionDialog
+        open={editSessionOpen}
+        session={selectedSession}
+        onClose={() => {
+          setEditSessionOpen(false);
+          setSelectedSession(null);
+        }}
+        onSuccess={() => {
+          void sessionsQuery.refetch();
+          void recordsQuery.refetch();
+          void summaryQuery.refetch();
+        }}
+      />
     </main>
   );
 }

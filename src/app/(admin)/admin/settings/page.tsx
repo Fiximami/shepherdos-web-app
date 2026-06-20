@@ -18,11 +18,15 @@ import { useState } from "react";
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
+import {
+  ChurchSettingsForm,
+  readDefaultCurrency,
+} from "@/components/admin/actions/church-settings-form";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { PreviewSectionNotice, previewDescription } from "@/components/shared/preview-section-notice";
 import { useApiData } from "@/hooks/use-api-data";
 import { formatApiValue, pickSummaryValue } from "@/lib/api/formatters";
-import { fetchChurchSettings, fetchProfileSettings, fetchSettings } from "@/lib/api/settings";
+import { fetchChurchSettings, fetchGivingSettings, fetchProfileSettings, fetchSettings } from "@/lib/api/settings";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useDisplayIdentity } from "@/hooks/use-display-identity";
 import { cn } from "@/lib/utils";
@@ -84,10 +88,12 @@ export default function AdminSettingsPage() {
   const settingsQuery = useApiData("admin-settings", fetchSettings, {});
   const churchSettingsQuery = useApiData("admin-settings-church", fetchChurchSettings, {});
   const profileSettingsQuery = useApiData("admin-settings-profile", fetchProfileSettings, {});
+  const givingSettingsQuery = useApiData("admin-settings-giving", fetchGivingSettings, {});
 
   const churchSettings = churchSettingsQuery.data;
   const workspaceSettings = settingsQuery.data;
   const profileSettings = profileSettingsQuery.data;
+  const givingSettings = givingSettingsQuery.data;
 
   const churchName =
     formatApiValue(
@@ -113,13 +119,27 @@ export default function AdminSettingsPage() {
   const adminContactName = pickSummaryValue(profileSettings, ["name", "fullName", "adminName"], displayName);
   const adminContactEmail = pickSummaryValue(profileSettings, ["email"], currentUser.email);
 
-  const settingsLive = settingsQuery.isLive || churchSettingsQuery.isLive || profileSettingsQuery.isLive;
+  const settingsLive =
+    settingsQuery.isLive ||
+    churchSettingsQuery.isLive ||
+    profileSettingsQuery.isLive ||
+    givingSettingsQuery.isLive;
 
   return (
     <main className="space-y-5">
       <ApiConnectionNotice
-        isLoading={settingsQuery.isLoading || churchSettingsQuery.isLoading || profileSettingsQuery.isLoading}
-        error={settingsQuery.error ?? churchSettingsQuery.error ?? profileSettingsQuery.error}
+        isLoading={
+          settingsQuery.isLoading ||
+          churchSettingsQuery.isLoading ||
+          profileSettingsQuery.isLoading ||
+          givingSettingsQuery.isLoading
+        }
+        error={
+          settingsQuery.error ??
+          churchSettingsQuery.error ??
+          profileSettingsQuery.error ??
+          givingSettingsQuery.error
+        }
         isLive={settingsLive}
         liveLabel="Showing live settings from /settings, /settings/church, and /settings/profile."
       />
@@ -176,53 +196,18 @@ export default function AdminSettingsPage() {
           className="border-white/10"
         >
           <div className="space-y-4">
-            <div>
-              <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="church-name">
-                Church name
-              </label>
-              <input
-                id="church-name"
-                readOnly
-                value={churchName}
-                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white placeholder:text-slate-600"
-              />
-              <p className="mt-1 text-[11px] text-slate-600">Shown on invitations, receipts, and the member home screen.</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="church-email">
-                  Contact email
-                </label>
-                <input
-                  id="church-email"
-                  readOnly
-                  value={churchEmail}
-                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="church-phone">
-                  Contact phone
-                </label>
-                <input
-                  id="church-phone"
-                  readOnly
-                  value={churchPhone}
-                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="church-address">
-                Address
-              </label>
-              <input
-                id="church-address"
-                readOnly
-                value={churchAddress}
-                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0c1420] px-3 py-2 text-sm text-white"
-              />
-            </div>
+            <ChurchSettingsForm
+              churchName={churchName}
+              churchEmail={churchEmail}
+              churchPhone={churchPhone}
+              churchAddress={churchAddress}
+              defaultCurrency={readDefaultCurrency({ ...workspaceSettings, ...givingSettings })}
+              onSaved={() => {
+                void settingsQuery.refetch();
+                void churchSettingsQuery.refetch();
+                void givingSettingsQuery.refetch();
+              }}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="admin-name">

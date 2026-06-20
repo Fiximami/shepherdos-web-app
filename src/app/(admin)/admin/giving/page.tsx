@@ -4,6 +4,7 @@ import { Download, FileSpreadsheet, Gift, Heart } from "lucide-react";
 import { useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
+import { GivingRecordDialog } from "@/components/admin/actions/giving-record-dialog";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
@@ -12,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { useApiData } from "@/hooks/use-api-data";
 import { pickSummaryCurrency } from "@/lib/api/formatters";
 import { fetchGivingRecords, fetchGivingSummary } from "@/lib/api/giving";
-import { mapAdminGivingRecord } from "@/lib/api/mappers";
+import { mapAdminGivingRecord, type AdminGivingRecord } from "@/lib/api/mappers";
+import { hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const fallbackSummaryCards = [
@@ -79,7 +81,10 @@ function pillSync(s: GivingRow["financeSync"]) {
 }
 
 export default function AdminGivingPage() {
+  const canApproveGiving = hasPermission("finance:approve");
   const [feedback, setFeedback] = useState("");
+  const [selectedRecord, setSelectedRecord] = useState<AdminGivingRecord | null>(null);
+  const [recordDialogOpen, setRecordDialogOpen] = useState(false);
   const summaryQuery = useApiData("admin-giving-summary", fetchGivingSummary, {});
   const recordsQuery = useApiData(
     "admin-giving-records",
@@ -119,7 +124,14 @@ export default function AdminGivingPage() {
           <>
             <Button
               className="h-9 rounded-lg border border-teal-400/25 bg-gradient-to-br from-teal-950/70 to-[#0f1a1c] text-teal-50 shadow-none hover:from-teal-900/75 hover:to-[#122220]"
-              onClick={() => setFeedback("View Giving Records opens the searchable ledger when connected.")}
+              onClick={() => {
+                if (records.length > 0) {
+                  setSelectedRecord(records[0] ?? null);
+                  setRecordDialogOpen(true);
+                } else {
+                  setFeedback("No giving records loaded yet.");
+                }
+              }}
             >
               <FileSpreadsheet className="size-4 text-teal-200/90" aria-hidden />
               View Giving Records
@@ -211,7 +223,7 @@ export default function AdminGivingPage() {
           <table className="w-full min-w-[1020px] border-collapse text-sm">
             <thead className="border-b border-white/10 bg-white/[0.04] text-slate-400">
               <tr>
-                {["Member", "Category", "Amount", "Payment Method", "Date", "Receipt Status", "Finance Sync Status"].map((h) => (
+                {["Member", "Category", "Amount", "Payment Method", "Date", "Receipt Status", "Finance Sync Status", "Actions"].map((h) => (
                   <th key={h} className="px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide">
                     {h}
                   </th>
@@ -221,7 +233,7 @@ export default function AdminGivingPage() {
             <tbody>
               {records.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
+                  <td colSpan={8} className="px-3 py-8 text-center text-sm text-slate-400">
                     {recordsQuery.isLive ? "No giving records found." : "Giving records will appear here when the API loads."}
                   </td>
                 </tr>
@@ -244,6 +256,20 @@ export default function AdminGivingPage() {
                     <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium", pillSync(row.financeSync))}>
                       {row.financeSync}
                     </span>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {recordsQuery.isLive ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedRecord(row);
+                          setRecordDialogOpen(true);
+                        }}
+                        className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.08]"
+                      >
+                        View
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
                 ))
@@ -318,6 +344,20 @@ export default function AdminGivingPage() {
           </div>
         </AdminCard>
       </div>
+
+      <GivingRecordDialog
+        open={recordDialogOpen}
+        record={selectedRecord}
+        canApprove={canApproveGiving}
+        onClose={() => {
+          setRecordDialogOpen(false);
+          setSelectedRecord(null);
+        }}
+        onSuccess={() => {
+          void summaryQuery.refetch();
+          void recordsQuery.refetch();
+        }}
+      />
     </main>
   );
 }

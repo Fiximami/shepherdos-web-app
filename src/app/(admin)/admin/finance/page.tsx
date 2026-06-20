@@ -18,6 +18,11 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
+import {
+  CreateTransactionDialog,
+  TransactionDetailDialog,
+  type FinanceTransactionRow,
+} from "@/components/admin/actions/finance-action-dialogs";
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
@@ -465,6 +470,10 @@ export default function AdminFinancePage() {
   const canApproveFinance = hasPermission("finance:approve");
   const canAccessFinance = hasAnyPermission(["finance:record", "finance:approve"]);
   const [feedback, setFeedback] = useState("");
+  const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<FinanceTransactionRow | null>(null);
+  const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 
   const summaryQuery = useApiData("admin-finance-summary", fetchFinanceSummary, {});
   const transactionsQuery = useApiData(
@@ -541,7 +550,7 @@ export default function AdminFinancePage() {
               <>
                 <Button
                   className="h-9 rounded-lg border border-amber-500/25 bg-[#0f1a2e] text-amber-50 shadow-none hover:bg-[#152238]"
-                  onClick={() => setFeedback("Record Income will open the income journal when connected.")}
+                  onClick={() => setIncomeDialogOpen(true)}
                 >
                   <ArrowDownLeft className="size-4 text-amber-200/90" aria-hidden />
                   Record Income
@@ -549,7 +558,7 @@ export default function AdminFinancePage() {
                 <Button
                   variant="outline"
                   className="h-9 rounded-lg border-amber-500/20 bg-[#0c1524] text-[#e8edf5] hover:bg-[#121f35]"
-                  onClick={() => setFeedback("Record Expense will open the expense entry when connected.")}
+                  onClick={() => setExpenseDialogOpen(true)}
                 >
                   <ArrowUpRight className="size-4 text-amber-200/80" aria-hidden />
                   Record Expense
@@ -652,7 +661,7 @@ export default function AdminFinancePage() {
               <table className="w-full min-w-[840px] border-collapse text-sm">
                 <thead className="border-b border-white/[0.08] bg-[#0a1426] text-slate-500">
                   <tr>
-                    {["Receipt ID", "Date", "Category", "Amount", "Source / contribution", "Reference", "Status"].map((h) => (
+                    {["Receipt ID", "Date", "Category", "Amount", "Source / contribution", "Reference", "Status", "Actions"].map((h) => (
                       <th key={h} className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide">
                         {h}
                       </th>
@@ -662,7 +671,7 @@ export default function AdminFinancePage() {
                 <tbody>
                   {liveRecentIncome.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-3 py-8 text-center text-sm text-slate-400">
+                      <td colSpan={8} className="px-3 py-8 text-center text-sm text-slate-400">
                         {transactionsQuery.isLive ? "No finance transactions recorded yet." : "Transactions will appear here when /finance/transactions loads."}
                       </td>
                     </tr>
@@ -678,6 +687,20 @@ export default function AdminFinancePage() {
                       <td className="max-w-[220px] px-3 py-2 text-slate-400">{r.source}</td>
                       <td className="px-3 py-2 font-mono text-xs text-amber-100/80">{r.reference}</td>
                       <td className="px-3 py-2 text-xs text-slate-400">{r.status}</td>
+                      <td className="px-3 py-2">
+                        {transactionsQuery.isLive ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedTransaction(r);
+                              setTransactionDialogOpen(true);
+                            }}
+                            className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-slate-300 hover:bg-white/[0.08]"
+                          >
+                            View
+                          </button>
+                        ) : null}
+                      </td>
                     </tr>
                     ))
                   )}
@@ -1153,6 +1176,41 @@ export default function AdminFinancePage() {
         Authorised roles only—finance officers, church admins, pastors, and delegates you assign. Member-facing{" "}
         <strong className="font-medium text-slate-400">Giving</strong> never exposes these controls.
       </p>
+
+      <CreateTransactionDialog
+        open={incomeDialogOpen}
+        type="income"
+        onClose={() => setIncomeDialogOpen(false)}
+        onSuccess={() => {
+          void summaryQuery.refetch();
+          void transactionsQuery.refetch();
+          void auditQuery.refetch();
+        }}
+      />
+      <CreateTransactionDialog
+        open={expenseDialogOpen}
+        type="expense"
+        onClose={() => setExpenseDialogOpen(false)}
+        onSuccess={() => {
+          void summaryQuery.refetch();
+          void transactionsQuery.refetch();
+          void auditQuery.refetch();
+        }}
+      />
+      <TransactionDetailDialog
+        open={transactionDialogOpen}
+        transaction={selectedTransaction}
+        canApprove={canApproveFinance}
+        onClose={() => {
+          setTransactionDialogOpen(false);
+          setSelectedTransaction(null);
+        }}
+        onSuccess={() => {
+          void summaryQuery.refetch();
+          void transactionsQuery.refetch();
+          void auditQuery.refetch();
+        }}
+      />
     </main>
   );
 }

@@ -1,10 +1,13 @@
 import { apiAuthRequest } from "@/lib/api/client";
 import { formatApiValue } from "@/lib/api/formatters";
 import { unwrapMemberScope, type MemberScopeResult } from "@/lib/api/member-scope";
-import { asRecord, unwrapApiList, unwrapApiSummary } from "@/lib/api/normalize";
+import { asRecord, unwrapApiEntity, unwrapApiList, unwrapApiSummary } from "@/lib/api/normalize";
 import type {
   ApiAttendanceSession,
   AttendanceCheckInResult,
+  AttendanceRecordCreate,
+  AttendanceSessionCreate,
+  AttendanceSessionUpdate,
   AttendanceSummary,
 } from "@/lib/api/types";
 
@@ -65,4 +68,39 @@ export async function fetchAttendanceSessions() {
 export async function fetchAttendanceRecords() {
   const response = await apiAuthRequest<unknown>("/attendance/records");
   return unwrapApiList<Record<string, unknown>>(response);
+}
+
+export async function createAttendanceSession(payload: AttendanceSessionCreate): Promise<ApiAttendanceSession> {
+  const response = await apiAuthRequest<unknown>("/attendance/sessions", {
+    method: "POST",
+    body: payload,
+  });
+  return unwrapApiEntity<ApiAttendanceSession>(response);
+}
+
+export async function updateAttendanceSession(
+  sessionId: string,
+  payload: AttendanceSessionUpdate,
+): Promise<ApiAttendanceSession> {
+  const response = await apiAuthRequest<unknown>(`/attendance/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "PATCH",
+    body: payload,
+  });
+  return unwrapApiEntity<ApiAttendanceSession>(response);
+}
+
+export async function closeAttendanceSession(sessionId: string): Promise<ApiAttendanceSession> {
+  const response = await apiAuthRequest<unknown>(
+    `/attendance/sessions/${encodeURIComponent(sessionId)}/close`,
+    { method: "PATCH", body: {} },
+  );
+  return unwrapApiEntity<ApiAttendanceSession>(response);
+}
+
+export async function recordAttendance(payload: AttendanceRecordCreate): Promise<Record<string, unknown>> {
+  const response = await apiAuthRequest<unknown>("/attendance/records", {
+    method: "POST",
+    body: payload,
+  });
+  return unwrapApiEntity<Record<string, unknown>>(response);
 }

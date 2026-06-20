@@ -5,6 +5,10 @@ import { useMemo, useState } from "react";
 
 import { AdminCard } from "@/components/admin/shared/admin-card";
 import { AdminPageHeader } from "@/components/admin/shared/admin-page-header";
+import {
+  CreateMemberDialog,
+  EditMemberDialog,
+} from "@/components/admin/actions/member-action-dialogs";
 import { ApiConnectionNotice } from "@/components/shared/api-connection-notice";
 import { PreviewSectionNotice } from "@/components/shared/preview-section-notice";
 import { Button } from "@/components/ui/button";
@@ -48,6 +52,9 @@ export default function AdminMembersPage() {
   const [departmentFilter, setDepartmentFilter] = useState("All Departments");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [feedback, setFeedback] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<MemberRow | null>(null);
 
   const membersQuery = useApiData(
     "admin-members",
@@ -105,19 +112,27 @@ export default function AdminMembersPage() {
         actions={
           <>
             {canCreateMembers ? (
-              <Button className="h-9 rounded-lg">
+              <Button className="h-9 rounded-lg" onClick={() => setCreateOpen(true)}>
                 <Plus className="size-4" aria-hidden />
                 Add Member
               </Button>
             ) : null}
             {canUpdateMembers ? (
-              <Button variant="outline" className="h-9 rounded-lg">
+              <Button
+                variant="outline"
+                className="h-9 rounded-lg"
+                onClick={() => setFeedback("Bulk import will be available when the import API is connected.")}
+              >
                 <Upload className="size-4" aria-hidden />
                 Import Members
               </Button>
             ) : null}
             {canManageMembers ? (
-              <Button variant="outline" className="h-9 rounded-lg">
+              <Button
+                variant="outline"
+                className="h-9 rounded-lg"
+                onClick={() => setFeedback("Export will be available when the export API is connected.")}
+              >
                 <Download className="size-4" aria-hidden />
                 Export Records
               </Button>
@@ -227,12 +242,24 @@ export default function AdminMembersPage() {
                   <td className="px-3 py-2 text-gray-300">{row.lastSeen}</td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1.5">
-                      {["View Profile", "Edit Member", "Assign Ministry", "Mark Follow-up", "Change Status"].map((action) => (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMember(row);
+                          setEditOpen(true);
+                        }}
+                        className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-gray-300 hover:bg-white/[0.08]"
+                      >
+                        Edit Member
+                      </button>
+                      {["Assign Ministry", "Mark Follow-up", "Change Status"].map((action) => (
                         <button
                           key={action}
                           type="button"
-                          onClick={() => setFeedback(`${action} for ${row.name} is a placeholder in this preview.`)}
-                          className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-gray-300 hover:bg-white/[0.08]"
+                          onClick={() =>
+                            setFeedback(`${action} for ${row.name} — use Edit Member for status updates today.`)
+                          }
+                          className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-gray-400 hover:bg-white/[0.08]"
                         >
                           {action}
                         </button>
@@ -260,6 +287,27 @@ export default function AdminMembersPage() {
           </p>
         </div>
       </AdminCard>
+
+      <CreateMemberDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSuccess={() => {
+          void membersQuery.refetch();
+          void summaryQuery.refetch();
+        }}
+      />
+      <EditMemberDialog
+        open={editOpen}
+        member={selectedMember}
+        onClose={() => {
+          setEditOpen(false);
+          setSelectedMember(null);
+        }}
+        onSuccess={() => {
+          void membersQuery.refetch();
+          void summaryQuery.refetch();
+        }}
+      />
     </main>
   );
 }
